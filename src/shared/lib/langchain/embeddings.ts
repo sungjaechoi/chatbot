@@ -1,4 +1,4 @@
-import { embed, embedMany } from 'ai';
+import { embed, embedMany } from "ai";
 
 /**
  * Google Embeddings 모델 생성 (Vercel AI Gateway 사용)
@@ -7,7 +7,7 @@ import { embed, embedMany } from 'ai';
  * - AI_GATEWAY_API_KEY 환경변수 사용
  */
 export function getEmbeddingModel(): string {
-  return process.env.EMBEDDING_MODEL || 'google/text-embedding-005';
+  return process.env.EMBEDDING_MODEL || "google/text-embedding-005";
 }
 
 /**
@@ -25,7 +25,7 @@ export async function embedText(text: string): Promise<number[]> {
     return embedding;
   } catch (error) {
     throw new Error(
-      `임베딩 생성 실패: ${error instanceof Error ? error.message : String(error)}`
+      `임베딩 생성 실패: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
@@ -45,7 +45,7 @@ export async function embedDocuments(texts: string[]): Promise<number[][]> {
     return embeddings;
   } catch (error) {
     throw new Error(
-      `다중 임베딩 생성 실패: ${error instanceof Error ? error.message : String(error)}`
+      `다중 임베딩 생성 실패: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
