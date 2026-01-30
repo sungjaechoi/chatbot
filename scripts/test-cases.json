@@ -1,0 +1,111 @@
+[
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "인공지능이라는 용어는 언제 처음 사용되었나요?",
+    "expectedAnswer": "1956년 다트머스 회의에서 처음 사용되었다",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "앨런 튜링이 제안한 테스트는 무엇인가요?",
+    "expectedAnswer": "튜링 테스트",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "전문가 시스템이 쇠퇴한 이유는 무엇인가요?",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "알파고는 어떤 기술을 사용했나요?",
+    "expectedAnswer": "딥러닝과 강화학습, 몬테카를로 트리 탐색",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "GAN을 제안한 사람은 누구인가요?",
+    "expectedAnswer": "이안 굿펠로우",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "기계 학습과 전문가 시스템의 차이점은 무엇인가요?",
+    "questionType": "COMPOSITE"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "AI 역사에서 겨울(침체기)과 부흥기의 원인을 비교해주세요",
+    "questionType": "COMPOSITE"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "딥러닝의 발전이 AI에 미친 영향은 무엇인가요?",
+    "questionType": "INFERENCE"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "이 문서 저자의 이메일 주소는 무엇인가요?",
+    "expectedAnswer": "제공된 문서에서 해당 정보를 찾을 수 없습니다.",
+    "questionType": "NOT_IN_DOC"
+  },
+  {
+    "pdfId": "5ce7bffd-75d9-4175-b034-a394107ecb5b",
+    "question": "GPT-5의 성능은 어떤가요?",
+    "expectedAnswer": "제공된 문서에서 해당 정보를 찾을 수 없습니다.",
+    "questionType": "NOT_IN_DOC"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "이 취업규칙의 목적은 무엇인가요?",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "근로계약은 어떻게 체결되나요?",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "보수의 계산기간은 어떻게 되나요?",
+    "expectedAnswer": "당해 월 1일부터 최종일까지의 1개월",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "직장내 성희롱에 대한 규정은 무엇인가요?",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "퇴직 사유에는 어떤 것들이 있나요?",
+    "questionType": "FACT"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "영업비밀 보호 의무와 퇴직 후 의무를 비교해주세요",
+    "questionType": "COMPOSITE"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "이 회사에서 일하면 어떤 복리후생 혜택이 있나요?",
+    "questionType": "INFERENCE"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "회사 대표이사의 연락처는 무엇인가요?",
+    "expectedAnswer": "제공된 문서에서 해당 정보를 찾을 수 없습니다.",
+    "questionType": "NOT_IN_DOC"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "회사 설립일은 언제인가요?",
+    "expectedAnswer": "제공된 문서에서 해당 정보를 찾을 수 없습니다.",
+    "questionType": "NOT_IN_DOC"
+  },
+  {
+    "pdfId": "84916b12-8f2a-4a51-a55e-c28f62d85b66",
+    "question": "그거 설명해줘",
+    "questionType": "AMBIGUOUS"
+  }
+]
