@@ -8,7 +8,7 @@ import { PdfUploadModalView } from './PdfUploadModalView';
 interface PdfUploadModalContainerProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadComplete: () => void;
+  onUploadComplete: () => void | Promise<void>;
 }
 
 export function PdfUploadModalContainer({
@@ -70,7 +70,15 @@ export function PdfUploadModalContainer({
         }
       }
 
-      const { pdfId } = await uploadRes.json();
+      let uploadData;
+      try {
+        uploadData = await uploadRes.json();
+      } catch (parseError) {
+        console.error('Upload response JSON 파싱 실패:', parseError);
+        throw new Error('PDF 업로드 응답 파싱에 실패했습니다.');
+      }
+
+      const { pdfId } = uploadData;
       setPdfId(pdfId);
       setPdfFileName(selectedFile.name);
 
@@ -93,6 +101,13 @@ export function PdfUploadModalContainer({
         }
       }
 
+      try {
+        await saveRes.json();
+      } catch (parseError) {
+        console.error('Save response JSON 파싱 실패:', parseError);
+        throw new Error('임베딩 저장 응답 파싱에 실패했습니다.');
+      }
+
       setIsEmbedding(false);
 
       // 채팅 메시지 초기화
@@ -102,8 +117,14 @@ export function PdfUploadModalContainer({
       setSelectedFile(null);
       setTempFileName(null);
 
-      onUploadComplete();
-      onClose();
+      // pdfId 유효성 검증
+      if (pdfId && typeof pdfId === 'string' && pdfId.trim() !== '') {
+        await onUploadComplete();
+        onClose();
+      } else {
+        setError('PDF 업로드는 완료되었으나 PDF ID를 가져오는데 실패했습니다.');
+        // onClose() 호출하지 않음 - 사용자가 에러를 확인할 수 있도록
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       setError(errorMessage);

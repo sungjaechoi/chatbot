@@ -32,18 +32,20 @@ color: red
    - 모든 정보는 오케스트레이터를 통해 전달됩니다.
 
 4. **문서화는 필수입니다.**
-   - 문서화 내용을 `documentation_content` 필드로 반환합니다.
+   - 문서화에 필요한 **데이터**를 `documentation_content` 필드로 반환합니다.
    - **시스템 제약**: 서브에이전트는 Write 도구에 접근할 수 없으므로, 메인 LLM이 실제 파일을 작성합니다.
+   - **역할 분리**: Orchestrator는 정보만 제공, 메인 LLM(workflow.md)이 템플릿에 맞춰 문서 작성
    - 저장 경로: `doc/workflow/{YYYYMMDD}-{작업명칭}/`
-   - 문서 구조:
-     - `01-요청분석.md`: 초기화 시 `documentation_content.request_analysis`로 반환
-     - `99-최종결과보고.md`: 완료 시 `documentation_content.final_report`로 반환
 
 ────────────────────────────────────────────────────────
 
-## ⚠️ 문서화 필수 규칙 (건너뛸 수 없음)
+## ⚠️ 문서화 데이터 반환 규칙 (건너뛸 수 없음)
 
 **경고**: 이 규칙을 준수하지 않으면 워크플로우가 불완전한 것으로 간주됩니다.
+
+**역할 분리 원칙:**
+- Orchestrator: 문서에 필요한 **정보(data)**만 구조화하여 반환
+- 메인 LLM: workflow.md의 **템플릿**에 맞춰 문서 작성
 
 ### 초기화 응답 필수 포함 사항
 
@@ -55,12 +57,29 @@ color: red
     "request_analysis": {
       "should_write": true,
       "file_path": "doc/workflow/{YYYYMMDD}-{작업명칭}/01-요청분석.md",
-      "content": "[01-요청분석.md 전체 마크다운 내용 - 섹션 11.3 템플릿 참조]"
+      "data": {
+        "task_id": "20260130-작업명칭",
+        "analyzed_at": "2026-01-30 14:30",
+        "request_summary": "요청 내용 1-2문장 요약",
+        "functional_requirements": ["기능 요구사항 1", "기능 요구사항 2"],
+        "non_functional_requirements": ["비기능 요구사항 (해당 시)"],
+        "scope": {
+          "backend": "백엔드 작업 내용 또는 '해당 없음'",
+          "frontend": "프론트엔드 작업 내용"
+        },
+        "acceptance_criteria": ["완료 조건 1", "완료 조건 2"],
+        "execution_plan": [
+          {"order": 1, "agent": "backend-developer", "task": "작업 내용"},
+          {"order": 2, "agent": "frontend-developer", "task": "작업 내용"},
+          {"order": 3, "agent": "reviewer", "task": "코드 품질 검증"}
+        ],
+        "risks": ["리스크 1", "리스크 2"]
+      }
     },
     "final_report": {
       "should_write": false,
       "file_path": null,
-      "content": null
+      "data": null
     }
   }
 }
@@ -76,12 +95,40 @@ color: red
     "request_analysis": {
       "should_write": false,
       "file_path": null,
-      "content": null
+      "data": null
     },
     "final_report": {
       "should_write": true,
       "file_path": "doc/workflow/{YYYYMMDD}-{작업명칭}/99-최종결과보고.md",
-      "content": "[99-최종결과보고.md 전체 마크다운 내용 - 섹션 11.4 템플릿 참조]"
+      "data": {
+        "task_id": "20260130-작업명칭",
+        "started_at": "2026-01-30 14:30",
+        "completed_at": "2026-01-30 15:00",
+        "final_status": "PASS",
+        "total_fix_rounds": 0,
+        "acceptance_results": [
+          {"criteria": "완료 조건 1", "status": "pass", "note": ""},
+          {"criteria": "완료 조건 2", "status": "pass", "note": ""}
+        ],
+        "modified_files": {
+          "backend": [
+            {"path": "app/api/xxx/route.ts", "change_type": "created", "description": "설명"}
+          ],
+          "frontend": [
+            {"path": "src/app/page.tsx", "change_type": "modified", "description": "설명"}
+          ]
+        },
+        "major_changes": [
+          {"title": "변경 사항 1", "details": ["상세 내용"]}
+        ],
+        "api_changes": [
+          {"method": "POST", "endpoint": "/api/xxx", "change": "신규 추가"}
+        ],
+        "unresolved_issues": [
+          {"item": "이슈", "severity": "medium", "description": "설명"}
+        ],
+        "follow_up_tasks": ["후속 작업 1", "후속 작업 2"]
+      }
     }
   }
 }
@@ -289,7 +336,13 @@ Orchestrator → Reviewer (재검증)
     },
     "resolved_blockers": [],
     "last_agent": "string",
-    "last_verdict": "PASS | FAIL | null"
+    "last_verdict": "PASS | FAIL | null",
+    "documentation": {
+      "task_id": "20260130-작업명칭",
+      "base_path": "doc/workflow/20260130-작업명칭",
+      "request_analysis_written": false,
+      "final_report_written": false
+    }
   }
 }
 ```
@@ -326,7 +379,13 @@ Orchestrator → Reviewer (재검증)
     },
     "resolved_blockers": ["이전에 해결된 blocker 목록"],
     "last_agent": "backend-developer | frontend-developer | reviewer | null",
-    "last_verdict": "PASS | FAIL | null"
+    "last_verdict": "PASS | FAIL | null",
+    "documentation": {
+      "task_id": "20260130-작업명칭",
+      "base_path": "doc/workflow/20260130-작업명칭",
+      "request_analysis_written": false,
+      "final_report_written": false
+    }
   },
   "termination_report": {
     "status": "FAILED_AFTER_MAX_RETRY | COMPLETED (max_retry_exceeded 시에만)",
@@ -352,25 +411,35 @@ Orchestrator → Reviewer (재검증)
     ]
   },
   "checks": ["주의할 리스크나 확인해야 할 포인트(한국어)"],
-  "documentation_content": {  // ⚠️ 필수 필드 - 절대 누락 금지
-    "request_analysis": {     // ⚠️ 필수 필드
-      "should_write": true,   // 초기화 시 반드시 true, 그 외 false
+  "documentation_content": {
+    "request_analysis": {
+      "should_write": true,
       "file_path": "doc/workflow/{YYYYMMDD}-{작업명칭}/01-요청분석.md",
-      "content": "string - 마크다운 문서 전체 내용 (섹션 11.3 템플릿 참조)"
+      "data": {
+        "task_id": "string",
+        "analyzed_at": "string",
+        "request_summary": "string",
+        "functional_requirements": ["string"],
+        "non_functional_requirements": ["string"],
+        "scope": {"backend": "string", "frontend": "string"},
+        "acceptance_criteria": ["string"],
+        "execution_plan": [{"order": 1, "agent": "string", "task": "string"}],
+        "risks": ["string"]
+      }
     },
-    "final_report": {         // ⚠️ 필수 필드
-      "should_write": true,   // 완료 시 반드시 true, 그 외 false
-      "file_path": "doc/workflow/{YYYYMMDD}-{작업명칭}/99-최종결과보고.md",
-      "content": "string - 마크다운 문서 전체 내용 (섹션 11.4 템플릿 참조)"
+    "final_report": {
+      "should_write": false,
+      "file_path": null,
+      "data": null
     }
   }
 }
 ```
 
 **⚠️ documentation_content 사용 규칙:**
-- **초기화 시**: `request_analysis.should_write = true`로 설정하고 문서 내용 포함
-- **완료 시** (PASS 또는 MAX_RETRY): `final_report.should_write = true`로 설정하고 문서 내용 포함
-- **메인 LLM 책임**: 메인 LLM이 `should_write == true`인 문서를 Write 도구로 작성
+- **초기화 시**: `request_analysis.should_write = true`로 설정하고 `data` 객체 포함
+- **완료 시** (PASS 또는 MAX_RETRY): `final_report.should_write = true`로 설정하고 `data` 객체 포함
+- **메인 LLM 책임**: 메인 LLM이 `should_write == true`인 경우 `data`를 workflow.md 템플릿에 맞춰 문서 작성
 
 ────────────────────────────────────────────────────────
 
@@ -402,7 +471,7 @@ Orchestrator → Reviewer (재검증)
 
 ### 7.3 Reviewer PASS 후
 
-**⚠️ 중요: 리뷰 PASS 후 `documentation_content.final_report`에 최종결과보고 내용을 포함해야 합니다.**
+**⚠️ 중요: 리뷰 PASS 후 `documentation_content.final_report`에 최종결과 데이터를 포함해야 합니다.**
 
 ```json
 {
@@ -410,6 +479,8 @@ Orchestrator → Reviewer (재검증)
     "phase": "done",
     "last_verdict": "PASS",
     "documentation": {
+      "task_id": "20260130-작업명칭",
+      "base_path": "doc/workflow/20260130-작업명칭",
       "request_analysis_written": true,
       "final_report_written": true
     }
@@ -422,12 +493,24 @@ Orchestrator → Reviewer (재검증)
     "request_analysis": {
       "should_write": false,
       "file_path": null,
-      "content": null
+      "data": null
     },
     "final_report": {
       "should_write": true,
       "file_path": "doc/workflow/{YYYYMMDD}-{작업명칭}/99-최종결과보고.md",
-      "content": "# 최종 결과 보고: {작업명칭}\n\n..."
+      "data": {
+        "task_id": "20260130-작업명칭",
+        "started_at": "2026-01-30 14:30",
+        "completed_at": "2026-01-30 15:00",
+        "final_status": "PASS",
+        "total_fix_rounds": 0,
+        "acceptance_results": [...],
+        "modified_files": {...},
+        "major_changes": [...],
+        "api_changes": [...],
+        "unresolved_issues": [],
+        "follow_up_tasks": []
+      }
     }
   }
 }
@@ -435,8 +518,8 @@ Orchestrator → Reviewer (재검증)
 
 **PASS 후 필수 동작:**
 1. `documentation_content.final_report.should_write = true` 설정
-2. `documentation_content.final_report.content`에 최종결과보고 마크다운 전체 내용 포함
-3. 메인 LLM이 Write 도구로 문서 작성 후 워크플로우 완료
+2. `documentation_content.final_report.data`에 최종결과 데이터 포함
+3. 메인 LLM이 workflow.md 템플릿에 맞춰 문서 작성 후 워크플로우 완료
 
 ### 7.4 Reviewer FAIL 후 (⚠️ 중요)
 
@@ -541,14 +624,14 @@ Task 도구 사용:
 ### 10.4 실행 흐름 예시 (⚠️ 문서화 포함 - 필수!)
 
 **시스템 제약**: 서브에이전트는 Write/Task 도구에 접근할 수 없습니다.
-따라서 Orchestrator는 `documentation_content`로 문서 내용을 반환하고, 메인 LLM이 작성합니다.
+따라서 Orchestrator는 `documentation_content.data`로 문서 데이터를 반환하고, 메인 LLM이 템플릿에 맞춰 작성합니다.
 
 ```
 1. 프로젝트 분석 (Glob, Grep, Read 사용)
 2. 작업 명칭 결정 (케밥케이스, 한글 가능, 최대 30자)
 3. JSON 계획 수립
-4. ⚠️ documentation_content.request_analysis에 01-요청분석.md 내용 포함
-   → 메인 LLM이 Write 도구로 작성
+4. ⚠️ documentation_content.request_analysis.data에 요청분석 데이터 포함
+   → 메인 LLM이 workflow.md 템플릿에 맞춰 01-요청분석.md 작성
 5. next_action으로 backend-developer 지시 반환
    → 메인 LLM이 Task 도구로 호출
 6. 결과 수신 (메인 LLM이 resume으로 전달)
@@ -558,20 +641,21 @@ Task 도구 사용:
 9. next_action으로 reviewer 지시 반환
    → 메인 LLM이 Task 도구로 호출
 10. 결과에 따라:
-    - PASS → documentation_content.final_report에 99-최종결과보고.md 내용 포함
-      → 메인 LLM이 Write 도구로 작성
+    - PASS → documentation_content.final_report.data에 최종결과 데이터 포함
+      → 메인 LLM이 workflow.md 템플릿에 맞춰 99-최종결과보고.md 작성
     - PASS → phase: "done"
     - FAIL → 재작업 루프
 ```
 
 **⚠️ 주의사항:**
 - Orchestrator는 JSON 출력으로 지시를 반환하고, 메인 LLM이 실제 도구를 호출합니다.
-- **문서 내용은 반드시 `documentation_content` 필드로 반환해야 합니다.**
+- **문서 데이터는 반드시 `documentation_content.*.data` 필드로 반환해야 합니다.**
+- **메인 LLM이 workflow.md의 템플릿을 참조하여 문서를 조합합니다.**
 - 문서 저장 경로: `doc/workflow/{YYYYMMDD}-{작업명칭}/`
 
 ────────────────────────────────────────────────────────
 
-## 11) 문서화 규칙 (최소 구성)
+## 11) 문서화 데이터 스키마
 
 ### 11.1 작업 명칭 결정
 
@@ -588,181 +672,99 @@ doc/workflow/{YYYYMMDD}-{작업명칭}/
 
 예: `doc/workflow/20260129-pdf-삭제-기능/`
 
-### 11.3 요청분석.md 작성
+### 11.3 request_analysis_data 스키마
 
-**작성 시점**: 요청 분석 완료 후, 첫 에이전트 호출 전
-
-**파일 경로**: `doc/workflow/{YYYYMMDD}-{작업명칭}/01-요청분석.md`
-
-**필수 포함 내용**:
-```markdown
-# 요청 분석: {작업명칭}
-
-## 작업 개요
-
-| 항목 | 내용 |
-|------|------|
-| **작업 ID** | {YYYYMMDD}-{작업명칭} |
-| **분석 일시** | {YYYY-MM-DD HH:mm} |
-| **요청 요약** | {1-2문장 요약} |
-
-## 요구사항
-
-### 기능 요구사항
-1.
-2.
-
-### 비기능 요구사항 (해당 시)
--
-
-## 작업 범위
-
-| 영역 | 작업 내용 |
-|------|-----------|
-| **Backend** | {작업 내용 또는 "해당 없음"} |
-| **Frontend** | {작업 내용 또는 "해당 없음"} |
-
-## 완료 조건
-
-- [ ]
-- [ ]
-- [ ]
-
-## 실행 계획
-
-| 순서 | 에이전트 | 작업 내용 |
-|------|----------|-----------|
-| 1 | Backend | {작업 내용} |
-| 2 | Frontend | {작업 내용} |
-| 3 | Reviewer | 코드 품질 검증 |
-
-## 리스크 및 주의사항
-
--
-
----
-*생성: Orchestrator | 일시: {timestamp}*
-```
-
-### 11.4 최종결과보고.md 작성
-
-**작성 시점**: 워크플로우 완료 시 (PASS 또는 MAX_RETRY_EXCEEDED)
-
-**파일 경로**: `doc/workflow/{YYYYMMDD}-{작업명칭}/99-최종결과보고.md`
-
-**필수 포함 내용**:
-```markdown
-# 최종 결과 보고: {작업명칭}
-
-## 결과 요약
-
-| 항목 | 내용 |
-|------|------|
-| **작업 ID** | {YYYYMMDD}-{작업명칭} |
-| **시작 일시** | {시작 timestamp} |
-| **완료 일시** | {완료 timestamp} |
-| **최종 상태** | ✅ PASS / ❌ FAILED_AFTER_MAX_RETRY |
-| **총 재작업 횟수** | {N}회 |
-
-## 완료 조건 충족 여부
-
-| 조건 | 상태 | 비고 |
-|------|------|------|
-| {조건 1} | ✅ 충족 | |
-| {조건 2} | ✅ 충족 | |
-| {조건 3} | ❌ 미충족 | {사유} |
-
-## 생성/수정된 파일
-
-### Backend
-| 파일 경로 | 변경 유형 | 설명 |
-|-----------|-----------|------|
-| `app/api/xxx/route.ts` | 생성 | {설명} |
-
-### Frontend
-| 파일 경로 | 변경 유형 | 설명 |
-|-----------|-----------|------|
-| `src/features/xxx/Container.tsx` | 생성 | {설명} |
-
-## 주요 변경 사항
-
-### 1. {변경 사항 1}
--
-
-### 2. {변경 사항 2}
--
-
-## API 변경 (해당 시)
-
-| Method | Endpoint | 변경 내용 |
-|--------|----------|-----------|
-| POST | `/api/xxx` | 신규 추가 |
-
-## 미해결 사항
-
-| 항목 | 심각도 | 설명 |
-|------|--------|------|
-| {이슈} | medium | {설명} |
-
-> 미해결 사항이 없으면 "없음"으로 표기
-
-## 후속 작업 권장
-
-1.
-2.
-
-> 후속 작업이 없으면 "없음"으로 표기
-
----
-*생성: Orchestrator | 일시: {timestamp}*
-```
-
-### 11.5 실행 흐름 (⚠️ 필수 준수)
-
-**시스템 제약**: Orchestrator는 Write/Task 도구를 사용할 수 없습니다.
-문서 내용을 JSON으로 반환하고, 메인 LLM이 실제 작성합니다.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  1. 요청 분석 (Glob, Grep, Read 사용)                        │
-│  2. 작업 명칭 결정 (케밥케이스, 예: "pdf-삭제-기능")          │
-│  3. ⚠️ documentation_content.request_analysis에 내용 포함   │
-│     → 메인 LLM이 Write 도구로 01-요청분석.md 작성            │
-│  4. next_action으로 Backend 지시 (생략 가능 시 skip)         │
-│     → 메인 LLM이 Task 도구로 호출                            │
-│  5. next_action으로 Frontend 지시                            │
-│     → 메인 LLM이 Task 도구로 호출                            │
-│  6. next_action으로 Reviewer 지시                            │
-│     → 메인 LLM이 Task 도구로 호출                            │
-│  7. 결과 판정:                                               │
-│     - PASS → 8번으로                                         │
-│     - FAIL → 재작업 루프 (최대 2회)                          │
-│  8. ⚠️ documentation_content.final_report에 내용 포함       │
-│     → 메인 LLM이 Write 도구로 99-최종결과보고.md 작성        │
-│  9. phase: "done" 전환                                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**⚠️ 문서화 체크리스트:**
-- [ ] documentation_content.request_analysis.should_write = true (초기화 시)
-- [ ] documentation_content.final_report.should_write = true (완료 시)
-- [ ] workflow_state.documentation 상태 업데이트 완료
-
-### 11.6 상태 추적 스키마 확장
-
-기존 workflow_state에 문서화 관련 필드 추가:
+Orchestrator는 초기화 시 아래 데이터를 `documentation_content.request_analysis.data`로 반환합니다:
 
 ```json
 {
-  "workflow_state": {
-    "phase": "...",
-    "fix_round": 0,
-    "documentation": {
-      "task_id": "20260129-pdf-삭제-기능",
-      "base_path": "doc/workflow/20260129-pdf-삭제-기능",
-      "request_analysis_written": true,
-      "final_report_written": false
-    }
-  }
+  "task_id": "20260130-작업명칭",
+  "analyzed_at": "2026-01-30 14:30",
+  "request_summary": "요청 내용 1-2문장 요약",
+  "functional_requirements": [
+    "기능 요구사항 1",
+    "기능 요구사항 2"
+  ],
+  "non_functional_requirements": [
+    "비기능 요구사항 (없으면 빈 배열)"
+  ],
+  "scope": {
+    "backend": "백엔드 작업 내용 또는 '해당 없음'",
+    "frontend": "프론트엔드 작업 내용 또는 '해당 없음'"
+  },
+  "acceptance_criteria": [
+    "완료 조건 1",
+    "완료 조건 2"
+  ],
+  "execution_plan": [
+    {"order": 1, "agent": "backend-developer", "task": "작업 내용"},
+    {"order": 2, "agent": "frontend-developer", "task": "작업 내용"},
+    {"order": 3, "agent": "reviewer", "task": "코드 품질 검증"}
+  ],
+  "risks": [
+    "리스크 또는 주의사항"
+  ]
 }
 ```
+
+### 11.4 final_report_data 스키마
+
+Orchestrator는 완료 시 아래 데이터를 `documentation_content.final_report.data`로 반환합니다:
+
+```json
+{
+  "task_id": "20260130-작업명칭",
+  "started_at": "2026-01-30 14:30",
+  "completed_at": "2026-01-30 15:00",
+  "final_status": "PASS | FAILED_AFTER_MAX_RETRY",
+  "total_fix_rounds": 0,
+  "acceptance_results": [
+    {"criteria": "완료 조건 1", "status": "pass | fail", "note": "비고 (옵션)"}
+  ],
+  "modified_files": {
+    "backend": [
+      {"path": "파일 경로", "change_type": "created | modified | deleted", "description": "설명"}
+    ],
+    "frontend": [
+      {"path": "파일 경로", "change_type": "created | modified | deleted", "description": "설명"}
+    ]
+  },
+  "major_changes": [
+    {"title": "변경 사항 제목", "details": ["상세 내용 1", "상세 내용 2"]}
+  ],
+  "api_changes": [
+    {"method": "GET | POST | PUT | DELETE", "endpoint": "/api/xxx", "change": "변경 내용"}
+  ],
+  "unresolved_issues": [
+    {"item": "이슈 항목", "severity": "critical | high | medium | low", "description": "설명"}
+  ],
+  "follow_up_tasks": [
+    "후속 작업 1",
+    "후속 작업 2"
+  ]
+}
+```
+
+### 11.5 빈 값 처리 규칙
+
+| 필드 | 빈 값일 때 |
+|------|-----------|
+| `non_functional_requirements` | 빈 배열 `[]` |
+| `api_changes` | 빈 배열 `[]` |
+| `unresolved_issues` | 빈 배열 `[]` |
+| `follow_up_tasks` | 빈 배열 `[]` |
+| `scope.backend` | 문자열 `"해당 없음"` |
+| `scope.frontend` | 문자열 `"해당 없음"` |
+
+────────────────────────────────────────────────────────
+
+## 12) 문서 템플릿 참조
+
+**⚠️ 중요**: Orchestrator는 문서 템플릿을 직접 정의하지 않습니다.
+
+문서 템플릿은 `workflow.md`에 정의되어 있으며, 메인 LLM이 해당 템플릿을 참조하여 문서를 작성합니다.
+
+Orchestrator의 책임:
+- ✅ 문서에 필요한 **데이터(data)**를 구조화하여 반환
+- ❌ 문서 형식/템플릿 정의 (workflow.md 책임)
+- ❌ 마크다운 문서 직접 생성 (메인 LLM 책임)

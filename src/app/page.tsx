@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/react/shallow';
 import { usePdfStore } from '@/shared/stores/pdfStore';
@@ -15,10 +15,9 @@ import type { CollectionInfo } from '@/shared/types';
  * - loading: 초기 컬렉션 로딩 중
  * - error: 컬렉션 로드 실패
  * - empty: PDF 0개 (업로드 화면 표시)
- * - single_auto_select: PDF 1개 (자동 선택 및 라우터 이동 진행 중)
- * - multiple_select: PDF 2개 이상 (선택 화면 표시)
+ * - multiple_select: PDF 1개 이상 (선택 화면 표시)
  */
-type PageState = 'loading' | 'error' | 'empty' | 'single_auto_select' | 'multiple_select';
+type PageState = 'loading' | 'error' | 'empty' | 'multiple_select';
 
 export default function Home() {
   const router = useRouter();
@@ -42,8 +41,6 @@ export default function Home() {
     }))
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const hasAutoSelected = useRef(false);
-  const prevCollectionsLengthRef = useRef(collections.length);
 
   // 초기 컬렉션 데이터 로드
   useEffect(() => {
@@ -51,46 +48,9 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchCollections is stable store action from zustand
   }, []);
 
-  // useMemo로 자동 선택 대상 추출 (의존성 안정화)
-  const autoSelectTarget = useMemo(() => {
-    if (collections.length === 1) {
-      return collections[0];
-    }
-    return null;
-  }, [collections]);
-
-  // 삭제 감지 및 자동 선택 플래그 리셋
-  useEffect(() => {
-    const prevLength = prevCollectionsLengthRef.current;
-    const currentLength = collections.length;
-
-    // 삭제 발생 감지 (길이 감소)
-    if (currentLength < prevLength) {
-      hasAutoSelected.current = false; // 플래그 리셋
-    }
-
-    prevCollectionsLengthRef.current = currentLength;
-  }, [collections]);
-
-  // PDF 1개일 때 자동 선택 및 라우터 이동 처리 (무한 루프 방지)
-  useEffect(() => {
-    // 이미 자동 선택 완료했으면 스킵
-    if (hasAutoSelected.current) return;
-
-    // 로딩 중이면 스킵
-    if (isLoadingCollections) return;
-
-    // autoSelectTarget이 있을 때만 라우터 이동 (selectCollection은 chat 페이지에서 처리)
-    if (autoSelectTarget) {
-      hasAutoSelected.current = true;
-      router.push(`/chat/${autoSelectTarget.pdfId}`);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- router is stable reference from Next.js, autoSelectTarget is derived from collections via useMemo
-  }, [isLoadingCollections, autoSelectTarget]);
-
   const handleUploadComplete = async () => {
     setIsModalOpen(false);
-    hasAutoSelected.current = false; // 새 PDF 업로드 시 자동 선택 리셋
+    // 업로드 완료 후 목록 갱신하고 루트 페이지에 머무름
     await fetchCollections();
   };
 
@@ -128,10 +88,7 @@ export default function Home() {
     // 3. PDF 없음 → 업로드 화면
     if (collections.length === 0) return 'empty';
 
-    // 4. PDF 1개 → 자동 선택 및 라우터 이동 진행 중 (로딩 표시)
-    if (collections.length === 1) return 'single_auto_select';
-
-    // 5. PDF 2개 이상 → 선택 화면
+    // 4. PDF 1개 이상 → 선택 화면
     return 'multiple_select';
   };
 
@@ -191,21 +148,7 @@ export default function Home() {
     );
   }
 
-  // 4. single_auto_select: PDF 1개 자동 선택 및 라우터 이동 진행 중
-  if (currentState === 'single_auto_select') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
-          <SpinnerView message="PDF를 불러오는 중..." size="lg" />
-          <p className="mt-4 text-center text-sm text-gray-500">
-            자동으로 선택된 PDF로 이동하고 있습니다
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 5. multiple_select: PDF 2개 이상, 선택 화면 표시
+  // 4. multiple_select: PDF 1개 이상, 선택 화면 표시
   if (currentState === 'multiple_select') {
     return (
       <>
@@ -225,6 +168,6 @@ export default function Home() {
     );
   }
 
-  // 6. empty: PDF 0개, 업로드 화면 표시
+  // 5. empty: PDF 0개, 업로드 화면 표시
   return <PdfUploadContainer onUploadComplete={handleUploadComplete} />;
 }

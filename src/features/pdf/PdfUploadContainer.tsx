@@ -5,7 +5,7 @@ import { usePdfStore } from '@/shared/stores/pdfStore';
 import { PdfUploadView } from './PdfUploadView';
 
 interface PdfUploadContainerProps {
-  onUploadComplete: () => void;
+  onUploadComplete: () => void | Promise<void>;
 }
 
 export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps) {
@@ -60,7 +60,15 @@ export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps
         }
       }
 
-      const { pdfId } = await uploadRes.json();
+      let uploadData;
+      try {
+        uploadData = await uploadRes.json();
+      } catch (parseError) {
+        console.error('JSON 파싱 실패:', parseError);
+        throw new Error('PDF 업로드 응답 파싱에 실패했습니다.');
+      }
+
+      const { pdfId } = uploadData;
       setPdfId(pdfId);
 
       setIsUploading(false);
@@ -83,7 +91,13 @@ export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps
       }
 
       setIsEmbedding(false);
-      onUploadComplete();
+
+      // pdfId 유효성 검증
+      if (pdfId && typeof pdfId === 'string' && pdfId.trim() !== '') {
+        await onUploadComplete();
+      } else {
+        setError('PDF 업로드는 완료되었으나 PDF ID를 가져오는데 실패했습니다. 다시 시도해주세요.');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       setError(errorMessage);

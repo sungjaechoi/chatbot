@@ -115,9 +115,10 @@ export default function ChatPage() {
     setIsModalOpen(false);
   };
 
-  const handleUploadComplete = async () => {
+  const handleUploadComplete = () => {
     setIsModalOpen(false);
-    await fetchCollections();
+    // 업로드 완료 후 루트 페이지로 이동 (목록에서 선택하도록)
+    router.push('/');
   };
 
   // 로딩 중 (초기화 또는 collections 로드 중)
