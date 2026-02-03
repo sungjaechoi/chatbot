@@ -13,6 +13,14 @@ export interface LLMConfig {
 }
 
 /**
+ * LLM 응답 결과 (모델 정보 포함)
+ */
+export interface LLMResult {
+  result: ReturnType<typeof streamText>;
+  model: string;
+}
+
+/**
  * RAG 시스템 프롬프트 생성
  */
 export function createRAGSystemPrompt(): string {
@@ -50,20 +58,27 @@ ${contextText}
 /**
  * LLM 스트리밍 응답 생성
  * test.ts와 동일한 방식: 문자열로 모델 지정 (Vercel AI Gateway)
+ *
+ * @returns LLMResult - 스트리밍 결과와 사용한 모델명
  */
 export async function generateAnswer(
   prompt: string,
   systemPrompt: string,
   config: LLMConfig = {},
-) {
+): Promise<LLMResult> {
   // test.ts와 동일: 문자열로 모델 지정 "google/gemini-2.5-flash"
   const model =
     config.model || process.env.LLM_MODEL || "google/gemini-2.5-flash";
 
-  return streamText({
+  const result = streamText({
     model,
     system: systemPrompt,
     prompt,
     temperature: config.temperature ?? 0.3,
   });
+
+  return {
+    result,
+    model,
+  };
 }

@@ -2,6 +2,7 @@
 
 import { useChatStore } from '@/shared/stores/chatStore';
 import { usePdfStore } from '@/shared/stores/pdfStore';
+import { useCreditsStore } from '@/shared/stores/creditsStore';
 import { ChatView } from './ChatView';
 
 interface ChatContainerProps {
@@ -12,6 +13,7 @@ interface ChatContainerProps {
 export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
   const { messages, isLoading, addMessage, setIsLoading, setError } = useChatStore();
   const { pdfId, pdfFileName } = usePdfStore();
+  const { fetchCredits } = useCreditsStore();
 
   const handleSendMessage = async (content: string) => {
     if (!pdfId || isLoading) return;
@@ -52,15 +54,19 @@ export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
 
       const data = await response.json();
 
-      // AI 응답 추가 (sources 포함)
+      // AI 응답 추가 (sources 및 usage 포함)
       const assistantMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant' as const,
         content: data.answer,
         timestamp: new Date(),
         sources: data.sources,
+        usage: data.usage,
       };
       addMessage(assistantMessage);
+
+      // 크레딧 잔액 갱신
+      fetchCredits();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
       setError(errorMessage);

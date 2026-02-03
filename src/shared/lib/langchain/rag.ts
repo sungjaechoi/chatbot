@@ -1,4 +1,4 @@
-import { ChatSource } from '@/shared/types';
+import { ChatSource, UsageInfo } from '@/shared/types';
 import { retrieveRelevantDocuments, formatContextsForLLM } from './retriever';
 import { generateAnswer, createRAGPrompt, createRAGSystemPrompt } from './llm';
 
@@ -16,6 +16,7 @@ export async function executeRAGPipeline(
 ): Promise<{
   answer: string;
   sources: ChatSource[];
+  usage?: UsageInfo;
 }> {
   try {
     // 1. Retrieval: 관련 문서 검색
@@ -36,7 +37,7 @@ export async function executeRAGPipeline(
     const prompt = createRAGPrompt(question, contexts);
 
     // 4. LLM 응답 생성
-    const result = await generateAnswer(prompt, systemPrompt);
+    const { result } = await generateAnswer(prompt, systemPrompt);
 
     // 5. 전체 응답 텍스트 수집
     let fullAnswer = '';
@@ -52,9 +53,27 @@ export async function executeRAGPipeline(
       score: result.score,
     }));
 
+    // 7. Usage 정보 추출 (API 응답 값 사용)
+    let usage: UsageInfo | undefined;
+    try {
+      const usageData = await result.usage;
+      if (usageData && usageData.inputTokens !== undefined && usageData.outputTokens !== undefined) {
+        usage = {
+          prompt_tokens: usageData.inputTokens,
+          completion_tokens: usageData.outputTokens,
+          // AI SDK streamText 응답에 cost 필드가 없으므로 0으로 설정
+          total_cost: 0,
+        };
+      }
+    } catch (error) {
+      // usage 정보 추출 실패해도 응답은 반환
+      console.error('Usage 정보 추출 실패:', error);
+    }
+
     return {
       answer: fullAnswer,
       sources,
+      usage,
     };
   } catch (error) {
     throw new Error(

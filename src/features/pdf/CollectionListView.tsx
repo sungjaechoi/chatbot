@@ -1,3 +1,5 @@
+import { ThemeToggleButton } from "@/shared/components/ThemeToggleButton";
+import { useCredits } from "@/shared/hooks/useCredits";
 import type { CollectionInfo } from "@/shared/types";
 
 interface CollectionListViewProps {
@@ -15,6 +17,8 @@ export function CollectionListView({
   onNewPdf,
   isDeletingPdf,
 }: CollectionListViewProps) {
+  const { balance, isLoading: isLoadingCredits } = useCredits();
+
   const handleDelete = async (
     e: React.MouseEvent,
     pdfId: string,
@@ -32,88 +36,272 @@ export function CollectionListView({
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-2xl rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">
-          저장된 PDF 선택
-        </h1>
-        <p className="mb-6 text-gray-600">
-          채팅을 시작할 PDF를 선택하거나 새로운 PDF를 업로드하세요
-        </p>
+    <div
+      className="relative flex min-h-screen items-center justify-center p-6"
+      style={{ background: "var(--color-cream)" }}
+    >
+      {/* 테마 토글 버튼 */}
+      <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
 
+      {/* 배경 그라디언트 */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
+            radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
+          `,
+        }}
+      />
+
+      <div
+        className="relative w-full max-w-2xl rounded-3xl p-10"
+        style={{
+          background: "var(--color-paper)",
+          boxShadow: "var(--shadow-xl)",
+          border: "1px solid var(--color-ai-border)",
+        }}
+      >
+        {/* 헤더 섹션 */}
+        <div className="mb-10 text-center">
+          {/* 데코레이티브 요소 */}
+          <div
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-soft) 100%)",
+              boxShadow: "0 8px 24px var(--color-accent-glow)",
+            }}
+          >
+            <svg
+              className="h-8 w-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+              />
+            </svg>
+          </div>
+
+          <h1
+            className="mb-3 text-3xl tracking-tight"
+            style={{ color: "var(--color-ink)" }}
+          >
+            내 문서
+          </h1>
+          <p className="text-sm" style={{ color: "var(--color-ink-muted)" }}>
+            대화를 시작할 문서를 선택하세요
+          </p>
+
+          {/* 크레딧 잔액 표시 */}
+          <div className="mt-3">
+            {isLoadingCredits ? (
+              <div
+                className="inline-block h-4 w-20 animate-pulse rounded"
+                style={{ background: "var(--color-cream-dark)" }}
+              />
+            ) : balance !== null ? (
+              <p
+                className="text-xs tracking-wide"
+                style={{ color: "var(--color-ink-muted)" }}
+              >
+                잔액: ${balance.toFixed(2)}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* 컬렉션 리스트 */}
         <div className="space-y-3">
-          {collections.map((collection) => (
+          {collections.map((collection, index) => (
             <div
               key={collection.pdfId}
-              className="group relative flex w-full items-stretch rounded-lg border border-gray-200 bg-white transition-all hover:border-blue-500 hover:bg-gray-50 hover:shadow-md"
+              className="animate-float-in group relative"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* 컬렉션 선택 버튼 - 주요 클릭 영역 */}
-              <button
-                onClick={() => onSelectCollection(collection)}
-                disabled={isDeletingPdf}
-                className="relative flex-1 cursor-pointer rounded-l-lg p-4 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label={`${collection.fileName} 선택`}
+              <div
+                className="relative flex w-full items-stretch overflow-hidden rounded-2xl transition-all duration-200"
+                style={{
+                  background: "var(--color-cream)",
+                  border: "1px solid var(--color-ai-border)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--color-accent-soft)";
+                  e.currentTarget.style.boxShadow = "var(--shadow-md)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--color-ai-border)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
               >
-                <h3 className="font-semibold text-gray-900">
-                  {collection.fileName}
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  문서 개수: {collection.documentCount}개
-                </p>
-                {collection.createdAt && (
-                  <p className="mt-1 text-xs text-gray-400">
-                    생성일:{" "}
-                    {new Date(collection.createdAt).toLocaleDateString(
-                      "ko-KR",
-                    )}
-                  </p>
-                )}
-                {/* 화살표 아이콘 - 클릭 가능성 시각적 힌트 */}
-                <svg
-                  className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-blue-600"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                {/* 좌측 악센트 바 */}
+                <div
+                  className="w-1 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, var(--color-accent), var(--color-accent-soft))",
+                  }}
+                />
 
-              {/* 삭제 버튼 - 우측 끝, hover 시 표시 */}
-              <button
-                onClick={(e) =>
-                  handleDelete(e, collection.pdfId, collection.fileName)
-                }
-                disabled={isDeletingPdf}
-                className="min-h-[44px] min-w-[44px] shrink-0 rounded-r-lg px-5 text-gray-400 opacity-0 transition-all duration-200 hover:bg-red-50 hover:text-red-600 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50 group-hover:opacity-100"
-                aria-label={`${collection.fileName} 삭제`}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                {/* 메인 버튼 영역 */}
+                <button
+                  onClick={() => onSelectCollection(collection)}
+                  disabled={isDeletingPdf}
+                  className="focus-ring relative flex flex-1 items-center gap-4 p-5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`${collection.fileName} 선택`}
                 >
-                  <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+                  {/* PDF 아이콘 */}
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      background: "var(--color-accent-glow)",
+                    }}
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      style={{ color: "var(--color-accent)" }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* 문서 정보 */}
+                  <div className="flex-1 min-w-0">
+                    <h3
+                      className="truncate font-medium"
+                      style={{ color: "var(--color-ink)" }}
+                    >
+                      {collection.fileName}
+                    </h3>
+                    <div
+                      className="mt-1 flex items-center gap-3 text-xs"
+                      style={{ color: "var(--color-ink-muted)" }}
+                    >
+                      <span className="flex items-center gap-1">
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                          />
+                        </svg>
+                        {collection.documentCount}개 청크
+                      </span>
+                      {collection.createdAt && (
+                        <span>
+                          {new Date(collection.createdAt).toLocaleDateString(
+                            "ko-KR",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 화살표 아이콘 */}
+                  <svg
+                    className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    style={{ color: "var(--color-ink-muted)" }}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                    />
+                  </svg>
+                </button>
+
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={(e) =>
+                    handleDelete(e, collection.pdfId, collection.fileName)
+                  }
+                  disabled={isDeletingPdf}
+                  className="focus-ring flex shrink-0 items-center justify-center px-4 opacity-0 transition-all duration-200 group-hover:opacity-100 disabled:cursor-not-allowed"
+                  style={{ color: "var(--color-ink-muted)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-error)";
+                    e.currentTarget.style.background = "var(--color-error-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--color-ink-muted)";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  aria-label={`${collection.fileName} 삭제`}
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 border-t border-gray-200 pt-6">
+        {/* 새 PDF 업로드 버튼 */}
+        <div
+          className="mt-8 border-t pt-8"
+          style={{ borderColor: "var(--color-ai-border)" }}
+        >
           <button
             onClick={onNewPdf}
-            className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="focus-ring btn-lift flex w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 font-medium transition-all"
+            style={{
+              background: "var(--color-ink)",
+              color: "var(--color-cream)",
+            }}
           >
-            새 PDF 업로드
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            새 문서 업로드
           </button>
         </div>
       </div>

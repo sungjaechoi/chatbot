@@ -6,6 +6,7 @@ import { usePdfStore } from '@/shared/stores/pdfStore';
 import { ChatContainer } from '@/features/chat/ChatContainer';
 import { PdfUploadModalContainer } from '@/features/pdf/PdfUploadModalContainer';
 import { SpinnerView } from '@/shared/components/SpinnerView';
+import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
 
 /**
  * 동적 라우트: /chat/[pdfId]
@@ -121,65 +122,192 @@ export default function ChatPage() {
     router.push('/');
   };
 
+  // 공통 배경 레이아웃
+  const BackgroundLayout = ({ children }: { children: React.ReactNode }) => (
+    <div
+      className="relative flex min-h-screen items-center justify-center"
+      style={{ background: 'var(--color-cream)' }}
+    >
+      {/* 테마 토글 버튼 */}
+      <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
+
+      {/* 배경 그라디언트 */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
+            radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
+          `
+        }}
+      />
+      {children}
+    </div>
+  );
+
   // 로딩 중 (초기화 또는 collections 로드 중)
   if (isInitializing || isLoadingCollections) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
+      <BackgroundLayout>
+        <div
+          className="relative rounded-3xl p-10"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
           <SpinnerView message="채팅을 준비하고 있습니다..." size="lg" />
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 
   // 컬렉션 로드 실패 시 에러 UI 표시
   if (collectionsError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg max-w-md w-full">
-          <p className="text-red-500 font-semibold text-center mb-2">
-            채팅을 불러오는데 실패했습니다.
+      <BackgroundLayout>
+        <div
+          className="relative w-full max-w-md rounded-3xl p-10 text-center"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          {/* 에러 아이콘 */}
+          <div
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{
+              background: 'var(--color-error-bg)',
+              border: '1px solid rgba(185, 28, 28, 0.2)'
+            }}
+          >
+            <svg
+              className="h-8 w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              style={{ color: 'var(--color-error)' }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+
+          <h2
+            className="mb-2 text-xl"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            채팅을 불러올 수 없습니다
+          </h2>
+          <p
+            className="mb-8 text-sm"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            {collectionsError}
           </p>
-          <p className="text-gray-500 text-sm text-center mb-6">{collectionsError}</p>
-          <div className="flex gap-2">
+
+          <div className="flex gap-3">
             <button
               onClick={() => fetchCollections()}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="focus-ring btn-lift flex-1 rounded-xl px-4 py-3 font-medium transition-all"
+              style={{
+                background: 'var(--color-ink)',
+                color: 'var(--color-cream)'
+              }}
             >
               다시 시도
             </button>
             <button
               onClick={() => router.push('/')}
-              className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              className="focus-ring flex-1 rounded-xl px-4 py-3 font-medium transition-colors"
+              style={{
+                background: 'var(--color-cream)',
+                color: 'var(--color-ink)',
+                border: '1px solid var(--color-ai-border)'
+              }}
             >
               메인으로
             </button>
           </div>
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 
   // 존재하지 않는 pdfId 접근 시 사용자 피드백 제공
   if (notFound) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg max-w-md w-full">
-          <p className="text-gray-700 font-semibold text-center mb-2">해당 PDF를 찾을 수 없습니다.</p>
-          <p className="text-sm text-gray-500 text-center">잠시 후 메인 화면으로 이동합니다...</p>
+      <BackgroundLayout>
+        <div
+          className="relative w-full max-w-md rounded-3xl p-10 text-center"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          {/* 아이콘 */}
+          <div
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{
+              background: 'var(--color-accent-glow)',
+              border: '1px solid var(--color-ai-border)'
+            }}
+          >
+            <svg
+              className="h-8 w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              style={{ color: 'var(--color-accent)' }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+              />
+            </svg>
+          </div>
+
+          <h2
+            className="mb-2 text-xl"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            문서를 찾을 수 없습니다
+          </h2>
+          <p
+            className="text-sm"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            잠시 후 메인 화면으로 이동합니다...
+          </p>
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 
   // pdfId가 스토어에 없으면 로딩 표시 (리다이렉트 대기)
   if (!storePdfId) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
+      <BackgroundLayout>
+        <div
+          className="relative rounded-3xl p-10"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
           <SpinnerView message="로딩 중..." size="lg" />
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 

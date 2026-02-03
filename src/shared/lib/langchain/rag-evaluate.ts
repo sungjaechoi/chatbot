@@ -152,7 +152,7 @@ export async function executeRAGForEvaluation(
     const prompt = createRAGPrompt(question, contexts);
 
     // 5. LLM 응답 생성
-    const result = await generateAnswer(prompt, systemPrompt);
+    const { result } = await generateAnswer(prompt, systemPrompt);
 
     // 6. 전체 응답 텍스트 수집
     let fullAnswer = '';
@@ -302,7 +302,7 @@ export async function runEvaluation(evaluationPrompt: string): Promise<Evaluatio
 JSON 외의 텍스트를 포함하지 마세요.`;
 
   // temperature=0으로 설정하여 평가 재현성 보장
-  const result = await generateAnswer(evaluationPrompt, systemPrompt, {
+  const { result } = await generateAnswer(evaluationPrompt, systemPrompt, {
     temperature: 0,
   });
 

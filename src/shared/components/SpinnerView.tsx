@@ -4,19 +4,44 @@ interface SpinnerViewProps {
 }
 
 export function SpinnerView({ message = '로딩 중...', size = 'md' }: SpinnerViewProps) {
-  const sizeClasses = {
-    sm: 'w-6 h-6 border-2',
-    md: 'w-12 h-12 border-3',
-    lg: 'w-16 h-16 border-4',
+  const sizeConfig = {
+    sm: { spinner: 'w-6 h-6', border: '2px', text: 'text-xs' },
+    md: { spinner: 'w-10 h-10', border: '2.5px', text: 'text-sm' },
+    lg: { spinner: 'w-14 h-14', border: '3px', text: 'text-base' },
   };
 
+  const config = sizeConfig[size];
+
   return (
-    <div className="flex flex-col items-center justify-center gap-4 p-8">
-      <div
-        className={`${sizeClasses[size]} border-blue-600 border-t-transparent rounded-full animate-spin`}
-      />
+    <div className="flex flex-col items-center justify-center gap-5 p-6">
+      {/* 스피너 */}
+      <div className="relative">
+        {/* 배경 원 */}
+        <div
+          className={`${config.spinner} rounded-full`}
+          style={{
+            border: `${config.border} solid var(--color-cream-dark)`
+          }}
+        />
+        {/* 회전 원 */}
+        <div
+          className={`${config.spinner} absolute inset-0 animate-spin rounded-full`}
+          style={{
+            border: `${config.border} solid transparent`,
+            borderTopColor: 'var(--color-accent)',
+            borderRightColor: 'var(--color-accent-soft)'
+          }}
+        />
+      </div>
+
+      {/* 메시지 */}
       {message && (
-        <p className="text-gray-600 text-sm font-medium">{message}</p>
+        <p
+          className={`${config.text} font-medium tracking-wide`}
+          style={{ color: 'var(--color-ink-muted)' }}
+        >
+          {message}
+        </p>
       )}
     </div>
   );

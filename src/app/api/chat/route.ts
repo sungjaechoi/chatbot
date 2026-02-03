@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
 
     // 4. RAG 파이프라인 실행
     const topK = parseInt(process.env.TOP_K || '6', 10);
-    const { answer, sources } = await executeRAGPipeline(pdfId, message, topK);
+    const { answer, sources, usage } = await executeRAGPipeline(pdfId, message, topK);
 
     const response: ChatResponse = {
       answer,
       sources,
+      usage,
     };
 
     return NextResponse.json(response, { status: 200 });

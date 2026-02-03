@@ -33,9 +33,16 @@ export interface ChatSource {
   score?: number;
 }
 
+export interface UsageInfo {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_cost: number;
+}
+
 export interface ChatResponse {
   answer: string;
   sources: ChatSource[];
+  usage?: UsageInfo;
 }
 
 /**
@@ -48,6 +55,7 @@ export interface Message {
   timestamp: Date;
   sources?: ChatSource[];
   isError?: boolean;
+  usage?: UsageInfo;
 }
 
 /**
@@ -100,6 +108,14 @@ export interface DeletePdfResponse {
   partialSuccess?: boolean;
   collectionDeleted?: boolean;
   fileDeleted?: boolean;
+}
+
+/**
+ * Credits 조회 응답
+ */
+export interface CreditsResponse {
+  balance: number;
+  total_used: number;
 }
 
 /**

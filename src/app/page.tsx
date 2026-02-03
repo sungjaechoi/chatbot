@@ -7,6 +7,7 @@ import { usePdfStore } from '@/shared/stores/pdfStore';
 import { PdfUploadContainer } from '@/features/pdf/PdfUploadContainer';
 import { PdfUploadModalContainer } from '@/features/pdf/PdfUploadModalContainer';
 import { SpinnerView } from '@/shared/components/SpinnerView';
+import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
 import { CollectionListView } from '@/features/pdf/CollectionListView';
 import type { CollectionInfo } from '@/shared/types';
 
@@ -98,9 +99,32 @@ export default function Home() {
   // 1. loading: 초기 컬렉션 로딩 중
   if (currentState === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
-          <SpinnerView message="기존 데이터를 확인하고 있습니다..." size="lg" />
+      <div
+        className="relative flex min-h-screen items-center justify-center"
+        style={{ background: 'var(--color-cream)' }}
+      >
+        {/* 테마 토글 버튼 */}
+        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
+
+        {/* 배경 그라디언트 */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
+              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
+            `
+          }}
+        />
+        <div
+          className="relative rounded-3xl p-10"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          <SpinnerView message="문서를 불러오는 중..." size="lg" />
         </div>
       </div>
     );
@@ -109,22 +133,87 @@ export default function Home() {
   // 2. error: 컬렉션 로드 실패
   if (currentState === 'error') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg max-w-md w-full">
-          <p className="text-red-500 font-semibold text-center mb-2">
-            컬렉션을 불러오는데 실패했습니다.
+      <div
+        className="relative flex min-h-screen items-center justify-center p-6"
+        style={{ background: 'var(--color-cream)' }}
+      >
+        {/* 테마 토글 버튼 */}
+        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
+
+        {/* 배경 그라디언트 */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
+              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
+            `
+          }}
+        />
+        <div
+          className="relative w-full max-w-md rounded-3xl p-10 text-center"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          {/* 에러 아이콘 */}
+          <div
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{
+              background: 'var(--color-error-bg)',
+              border: '1px solid rgba(185, 28, 28, 0.2)'
+            }}
+          >
+            <svg
+              className="h-8 w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              style={{ color: 'var(--color-error)' }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+
+          <h2
+            className="mb-2 text-xl"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            불러오기 실패
+          </h2>
+          <p
+            className="mb-8 text-sm"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            {error}
           </p>
-          <p className="text-gray-500 text-sm text-center mb-6">{error}</p>
-          <div className="flex gap-2">
+
+          <div className="flex gap-3">
             <button
               onClick={() => fetchCollections()}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="focus-ring btn-lift flex-1 rounded-xl px-4 py-3 font-medium transition-all"
+              style={{
+                background: 'var(--color-ink)',
+                color: 'var(--color-cream)'
+              }}
             >
               다시 시도
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+              className="focus-ring flex-1 rounded-xl px-4 py-3 font-medium transition-colors"
+              style={{
+                background: 'var(--color-cream)',
+                color: 'var(--color-ink)',
+                border: '1px solid var(--color-ai-border)'
+              }}
             >
               새 PDF 업로드
             </button>
@@ -137,11 +226,37 @@ export default function Home() {
   // 3. 임베딩 진행 중 (PDF 업로드 후 처리 중)
   if (isEmbedding) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
+      <div
+        className="relative flex min-h-screen items-center justify-center"
+        style={{ background: 'var(--color-cream)' }}
+      >
+        {/* 테마 토글 버튼 */}
+        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
+
+        {/* 배경 그라디언트 */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
+              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
+            `
+          }}
+        />
+        <div
+          className="relative rounded-3xl p-10 text-center"
+          style={{
+            background: 'var(--color-paper)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
           <SpinnerView message="PDF를 분석하고 있습니다..." size="lg" />
-          <p className="mt-4 text-center text-sm text-gray-500">
-            잠시만 기다려주세요
+          <p
+            className="mt-2 text-xs"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            문서 내용을 AI가 이해할 수 있도록 처리 중입니다
           </p>
         </div>
       </div>

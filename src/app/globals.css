@@ -1,9 +1,73 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ========================================
+   Design System: Editorial Luxury
+   - 고급 잡지 느낌의 정제된 타이포그래피
+   - 깊이감 있는 레이어와 미묘한 그림자
+   - 절제된 색상 팔레트
+   ======================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary Palette - 딥 네이비 + 슬레이트 블루 악센트 */
+  --color-ink: #1a1f2e;
+  --color-ink-light: #2d3548;
+  --color-ink-muted: #6b7280;
+
+  --color-cream: #faf9f7;
+  --color-cream-dark: #f0eeea;
+  --color-paper: #ffffff;
+
+  --color-accent: #5b7a9d; /* 슬레이트 블루 */
+  --color-accent-soft: #7a9bbf;
+  --color-accent-glow: rgba(91, 122, 157, 0.15);
+
+  /* AI 메시지 컬러 - 따뜻한 톤 */
+  --color-ai-bg: #f8f6f3;
+  --color-ai-border: #e8e4de;
+
+  /* 사용자 메시지 컬러 - 딥 네이비 */
+  --color-user-bg: #1a1f2e;
+  --color-user-text: #faf9f7;
+
+  /* 시멘틱 */
+  --color-error: #b91c1c;
+  --color-error-bg: #fef2f2;
+  --color-success: #166534;
+  --color-success-bg: #f0fdf4;
+
+  /* 그림자 시스템 */
+  --shadow-sm: 0 1px 2px rgba(26, 31, 46, 0.04);
+  --shadow-md: 0 4px 12px rgba(26, 31, 46, 0.08);
+  --shadow-lg: 0 8px 30px rgba(26, 31, 46, 0.12);
+  --shadow-xl: 0 20px 50px rgba(26, 31, 46, 0.15);
+  --shadow-float: 0 10px 40px rgba(26, 31, 46, 0.1), 0 2px 10px rgba(26, 31, 46, 0.05);
+
+  /* 레이아웃 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* 간격 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* 타이포 - Pretendard 통일 */
+  --font-display: var(--font-sans), system-ui, sans-serif;
+  --font-body: var(--font-sans), system-ui, sans-serif;
+
+  /* 트랜지션 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --background: var(--color-cream);
+  --foreground: var(--color-ink);
 }
 
 @theme inline {
@@ -11,14 +75,219 @@
   --color-foreground: var(--foreground);
 }
 
+/* 다크모드: data-theme 속성 우선, 없으면 시스템 설정 추종 */
+[data-theme='dark'] {
+  --color-cream: #0f1118;
+  --color-cream-dark: #1a1f2e;
+  --color-paper: #161b26;
+
+  --color-ink: #f0eeea;
+  --color-ink-light: #d1cdc4;
+  --color-ink-muted: #8b8680;
+
+  --color-ai-bg: #1e2330;
+  --color-ai-border: #2d3548;
+
+  --color-user-bg: #5b7a9d;
+  --color-user-text: #0f1118;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.3), 0 2px 10px rgba(0, 0, 0, 0.2);
+
+  --background: var(--color-cream);
+  --foreground: var(--color-ink);
+}
+
+/* 시스템 설정 추종 (data-theme 속성이 없을 때만) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme]) {
+    --color-cream: #0f1118;
+    --color-cream-dark: #1a1f2e;
+    --color-paper: #161b26;
+
+    --color-ink: #f0eeea;
+    --color-ink-light: #d1cdc4;
+    --color-ink-muted: #8b8680;
+
+    --color-ai-bg: #1e2330;
+    --color-ai-border: #2d3548;
+
+    --color-user-bg: #5b7a9d;
+    --color-user-text: #0f1118;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.3), 0 2px 10px rgba(0, 0, 0, 0.2);
+
+    --background: var(--color-cream);
+    --foreground: var(--color-ink);
   }
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ========================================
+   Typography - Pretendard 기반
+   ======================================== */
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* ========================================
+   Custom Scrollbar
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-muted);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-light);
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float-in {
+  animation: float-in 0.4s var(--transition-slow) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s var(--transition-base) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme='dark'] .glass {
+  background: rgba(22, 27, 38, 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .glass {
+    background: rgba(22, 27, 38, 0.85);
+  }
+}
+
+/* 노이즈 텍스처 오버레이 */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 그라디언트 배경 */
+.gradient-subtle {
+  background: linear-gradient(
+    145deg,
+    var(--color-cream) 0%,
+    var(--color-cream-dark) 50%,
+    var(--color-cream) 100%
+  );
+}
+
+/* 포커스 스타일 */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-cream), 0 0 0 4px var(--color-accent);
+}
+
+/* 버튼 호버 효과 */
+.btn-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-lift:active:not(:disabled) {
+  transform: translateY(0);
 }
