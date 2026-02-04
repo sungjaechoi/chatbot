@@ -7,7 +7,6 @@ import { usePdfStore } from '@/shared/stores/pdfStore';
 import { PdfUploadContainer } from '@/features/pdf/PdfUploadContainer';
 import { PdfUploadModalContainer } from '@/features/pdf/PdfUploadModalContainer';
 import { SpinnerView } from '@/shared/components/SpinnerView';
-import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
 import { CollectionListView } from '@/features/pdf/CollectionListView';
 import type { CollectionInfo } from '@/shared/types';
 
@@ -103,9 +102,6 @@ export default function Home() {
         className="relative flex min-h-screen items-center justify-center"
         style={{ background: 'var(--color-cream)' }}
       >
-        {/* 테마 토글 버튼 */}
-        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
         {/* 배경 그라디언트 */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -137,9 +133,6 @@ export default function Home() {
         className="relative flex min-h-screen items-center justify-center p-6"
         style={{ background: 'var(--color-cream)' }}
       >
-        {/* 테마 토글 버튼 */}
-        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
         {/* 배경 그라디언트 */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -230,9 +223,6 @@ export default function Home() {
         className="relative flex min-h-screen items-center justify-center"
         style={{ background: 'var(--color-cream)' }}
       >
-        {/* 테마 토글 버튼 */}
-        <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
         {/* 배경 그라디언트 */}
         <div
           className="pointer-events-none absolute inset-0"

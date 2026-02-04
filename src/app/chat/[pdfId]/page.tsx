@@ -6,7 +6,6 @@ import { usePdfStore } from '@/shared/stores/pdfStore';
 import { ChatContainer } from '@/features/chat/ChatContainer';
 import { PdfUploadModalContainer } from '@/features/pdf/PdfUploadModalContainer';
 import { SpinnerView } from '@/shared/components/SpinnerView';
-import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
 
 /**
  * 동적 라우트: /chat/[pdfId]
@@ -128,9 +127,6 @@ export default function ChatPage() {
       className="relative flex min-h-screen items-center justify-center"
       style={{ background: 'var(--color-cream)' }}
     >
-      {/* 테마 토글 버튼 */}
-      <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
       {/* 배경 그라디언트 */}
       <div
         className="pointer-events-none absolute inset-0"

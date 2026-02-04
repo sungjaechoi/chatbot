@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
 
 interface PdfUploadViewProps {
   fileName: string | null;
@@ -53,9 +52,6 @@ export function PdfUploadView({
       className="relative flex min-h-screen flex-col items-center justify-center p-6"
       style={{ background: 'var(--color-cream)' }}
     >
-      {/* 테마 토글 버튼 */}
-      <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
       {/* 배경 그라디언트 */}
       <div
         className="pointer-events-none absolute inset-0"

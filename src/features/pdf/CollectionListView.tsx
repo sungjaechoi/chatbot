@@ -1,4 +1,3 @@
-import { ThemeToggleButton } from "@/shared/components/ThemeToggleButton";
 import { useCredits } from "@/shared/hooks/useCredits";
 import type { CollectionInfo } from "@/shared/types";
 
@@ -40,9 +39,6 @@ export function CollectionListView({
       className="relative flex min-h-screen items-center justify-center p-6"
       style={{ background: "var(--color-cream)" }}
     >
-      {/* 테마 토글 버튼 */}
-      <ThemeToggleButton className="fixed right-6 top-6 z-50" size="md" />
-
       {/* 배경 그라디언트 */}
       <div
         className="pointer-events-none absolute inset-0"
