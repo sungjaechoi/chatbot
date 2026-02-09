@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getChromaClient } from '@/shared/lib/chroma';
+import { createClient } from '@/shared/lib/supabase/server';
 import {
   GetCollectionsResponse,
   CollectionInfo,
@@ -11,99 +11,43 @@ export const runtime = 'nodejs';
 
 /**
  * GET /api/collections
- * Chroma에 저장된 모든 PDF 컬렉션 목록 조회
- *
- * 응답 형식:
- * {
- *   collections: [
- *     {
- *       pdfId: string,
- *       fileName: string,
- *       documentCount: number,
- *       createdAt?: string
- *     }
- *   ],
- *   meta: {
- *     total: number,      // 전체 컬렉션 수
- *     success: number,    // 성공적으로 조회된 컬렉션 수
- *     failed: number      // 조회 실패한 컬렉션 수
- *   }
- * }
+ * Supabase에서 사용자의 PDF 컬렉션 목록 조회
  */
 export async function GET() {
   try {
-    const client = getChromaClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // Chroma에서 모든 컬렉션 조회
-    const allCollections = await client.listCollections();
-
-    // pdf_ 접두사를 가진 컬렉션만 필터링
-    const pdfCollections = allCollections.filter((collection) =>
-      collection.name.startsWith('pdf_')
-    );
-
-    // 컬렉션 정보 추출
-    const collectionsInfo: CollectionInfo[] = [];
-    let failedCount = 0;
-
-    for (const collection of pdfCollections) {
-      try {
-        // 컬렉션에서 pdfId 추출 (pdf_ 접두사 제거)
-        const pdfId = collection.name.replace('pdf_', '');
-
-        // 컬렉션 객체 가져오기
-        const chromaCollection = await client.getCollection({
-          name: collection.name,
-        });
-
-        // 컬렉션 내 문서 개수 조회
-        const count = await chromaCollection.count();
-
-        // 메타데이터에서 파일명 추출을 위해 첫 번째 문서 조회
-        let fileName = 'Unknown';
-        let createdAt: string | undefined;
-
-        if (count > 0) {
-          // 첫 번째 문서 1개만 조회
-          const result = await chromaCollection.get({
-            limit: 1,
-          });
-
-          // 메타데이터에서 fileName 추출
-          if (
-            result.metadatas &&
-            result.metadatas.length > 0 &&
-            result.metadatas[0]
-          ) {
-            const metadata = result.metadatas[0];
-            fileName =
-              typeof metadata.fileName === 'string'
-                ? metadata.fileName
-                : 'Unknown';
-            createdAt =
-              typeof metadata.createdAt === 'string'
-                ? metadata.createdAt
-                : undefined;
-          }
-        }
-
-        collectionsInfo.push({
-          pdfId,
-          fileName,
-          documentCount: count,
-          createdAt,
-        });
-      } catch {
-        // 특정 컬렉션 조회 실패 시 카운트 증가 및 계속 진행
-        failedCount++;
-      }
+    if (!user) {
+      return NextResponse.json<ErrorResponse>(
+        { error: '인증이 필요합니다.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
     }
 
-    // 메타 정보 생성
+    // get_user_collections RPC 호출
+    const { data, error } = await supabase.rpc('get_user_collections');
+
+    if (error) {
+      throw new Error(`컬렉션 조회 실패: ${error.message}`);
+    }
+
+    const collectionsInfo: CollectionInfo[] = (data || []).map((row: {
+      pdf_id: string;
+      file_name: string;
+      document_count: number;
+      created_at: string;
+    }) => ({
+      pdfId: row.pdf_id,
+      fileName: row.file_name,
+      documentCount: row.document_count,
+      createdAt: row.created_at,
+    }));
+
     const meta: CollectionsMeta = {
-      total: pdfCollections.length,
+      total: collectionsInfo.length,
       success: collectionsInfo.length,
-      failed: failedCount,
+      failed: 0,
     };
 
     const response: GetCollectionsResponse = {

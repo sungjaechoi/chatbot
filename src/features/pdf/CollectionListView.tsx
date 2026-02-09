@@ -1,5 +1,6 @@
 import { useCredits } from "@/shared/hooks/useCredits";
 import type { CollectionInfo } from "@/shared/types";
+import type { User } from "@supabase/supabase-js";
 
 interface CollectionListViewProps {
   collections: CollectionInfo[];
@@ -7,6 +8,8 @@ interface CollectionListViewProps {
   onDeleteCollection: (pdfId: string) => void;
   onNewPdf: () => void;
   isDeletingPdf: boolean;
+  user?: User | null;
+  onSignOut?: () => void;
 }
 
 export function CollectionListView({
@@ -15,6 +18,8 @@ export function CollectionListView({
   onDeleteCollection,
   onNewPdf,
   isDeletingPdf,
+  user,
+  onSignOut,
 }: CollectionListViewProps) {
   const { balance, isLoading: isLoadingCredits } = useCredits();
 
@@ -51,7 +56,7 @@ export function CollectionListView({
       />
 
       <div
-        className="relative w-full max-w-2xl rounded-3xl p-10"
+        className="relative w-full max-w-2xl rounded-3xl px-10 py-12 sm:px-12 sm:py-14"
         style={{
           background: "var(--color-paper)",
           boxShadow: "var(--shadow-xl)",
@@ -59,61 +64,106 @@ export function CollectionListView({
         }}
       >
         {/* 헤더 섹션 */}
-        <div className="mb-10 text-center">
-          {/* 데코레이티브 요소 */}
-          <div
-            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-soft) 100%)",
-              boxShadow: "0 8px 24px var(--color-accent-glow)",
-            }}
-          >
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-              />
-            </svg>
-          </div>
-
-          <h1
-            className="mb-3 text-3xl tracking-tight"
-            style={{ color: "var(--color-ink)" }}
-          >
-            내 문서
-          </h1>
-          <p className="text-sm" style={{ color: "var(--color-ink-muted)" }}>
-            대화를 시작할 문서를 선택하세요
-          </p>
-
-          {/* 크레딧 잔액 표시 */}
-          <div className="mt-3">
-            {isLoadingCredits ? (
+        <div className="mb-10">
+          {/* 유저 정보 + 타이틀 */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3.5">
               <div
-                className="inline-block h-4 w-20 animate-pulse rounded"
-                style={{ background: "var(--color-cream-dark)" }}
-              />
-            ) : balance !== null ? (
-              <p
-                className="text-xs tracking-wide"
-                style={{ color: "var(--color-ink-muted)" }}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-soft) 100%)",
+                  boxShadow: "0 4px 12px var(--color-accent-glow)",
+                }}
               >
-                잔액: ${balance.toFixed(2)}
-              </p>
-            ) : null}
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1
+                  className="text-2xl tracking-tight"
+                  style={{ color: "var(--color-ink)" }}
+                >
+                  내 문서
+                </h1>
+                <p
+                  className="mt-1 text-xs tracking-wide"
+                  style={{ color: "var(--color-ink-muted)" }}
+                >
+                  {isLoadingCredits ? (
+                    <span
+                      className="inline-block h-3.5 w-16 animate-pulse rounded"
+                      style={{ background: "var(--color-cream-dark)" }}
+                    />
+                  ) : balance !== null ? (
+                    <>
+                      대화를 시작할 문서를 선택하세요 · 잔액 $
+                      {balance.toFixed(2)}
+                    </>
+                  ) : (
+                    <>대화를 시작할 문서를 선택하세요</>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* 유저 프로필 */}
+            {user && (
+              <div className="flex items-center gap-2.5 pt-1">
+                <span
+                  className="hidden text-xs sm:block"
+                  style={{ color: "var(--color-ink-muted)" }}
+                >
+                  {user.user_metadata?.full_name || user.email}
+                </span>
+                {user.user_metadata?.avatar_url && (
+                  <img
+                    src={user.user_metadata.avatar_url}
+                    alt="프로필"
+                    className="h-7 w-7 rounded-full"
+                    style={{
+                      outline: "2px solid var(--color-ai-border)",
+                      outlineOffset: "1px",
+                    }}
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                {onSignOut && (
+                  <button
+                    onClick={onSignOut}
+                    className="focus-ring rounded-lg px-2.5 py-1 text-xs transition-colors"
+                    style={{
+                      color: "var(--color-ink-muted)",
+                      border: "1px solid var(--color-ai-border)",
+                    }}
+                  >
+                    로그아웃
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* 구분선 */}
+          <div
+            className="mt-6"
+            style={{ borderTop: "1px solid var(--color-ai-border)" }}
+          />
         </div>
 
         {/* 컬렉션 리스트 */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {collections.map((collection, index) => (
             <div
               key={collection.pdfId}

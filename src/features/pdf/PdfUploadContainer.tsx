@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { usePdfStore } from '@/shared/stores/pdfStore';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { createClient } from '@/shared/lib/supabase/client';
 import { PdfUploadView } from './PdfUploadView';
 
 interface PdfUploadContainerProps {
@@ -10,6 +13,7 @@ interface PdfUploadContainerProps {
 
 export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { user } = useAuth();
   const {
     pdfFileName,
     isUploading,
@@ -25,7 +29,6 @@ export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   const handleFileSelect = (file: File) => {
-    // 파일 크기 검증
     if (file.size > MAX_FILE_SIZE) {
       setError('파일 크기가 너무 큽니다. (최대 10MB)');
       return;
@@ -36,63 +39,58 @@ export function PdfUploadContainer({ onUploadComplete }: PdfUploadContainerProps
   };
 
   const handleSave = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !user) return;
 
     try {
       setIsUploading(true);
       setError(null);
 
-      // 1. PDF 업로드
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      const pdfId = uuidv4();
+      const storagePath = `${user.id}/${pdfId}.pdf`;
 
+      // 1. Supabase Storage에 직접 업로드
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from('pdfs')
+        .upload(storagePath, selectedFile, {
+          contentType: 'application/pdf',
+        });
+
+      if (uploadError) {
+        throw new Error(`Storage 업로드 실패: ${uploadError.message}`);
+      }
+
+      // 2. 서버에 메타데이터 전송
       const uploadRes = await fetch('/api/pdf/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdfId, fileName: selectedFile.name, storagePath }),
       });
 
       if (!uploadRes.ok) {
-        try {
-          const errorData = await uploadRes.json();
-          throw new Error(errorData.error || 'PDF 업로드에 실패했습니다.');
-        } catch {
-          throw new Error('PDF 업로드에 실패했습니다.');
-        }
+        const errorData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'PDF 업로드에 실패했습니다.');
       }
 
-      let uploadData;
-      try {
-        uploadData = await uploadRes.json();
-      } catch (parseError) {
-        console.error('JSON 파싱 실패:', parseError);
-        throw new Error('PDF 업로드 응답 파싱에 실패했습니다.');
-      }
-
-      const { pdfId } = uploadData;
       setPdfId(pdfId);
 
       setIsUploading(false);
       setIsEmbedding(true);
 
-      // 2. 임베딩 저장
+      // 3. 임베딩 저장
       const saveRes = await fetch(`/api/pdf/${pdfId}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: selectedFile.name }),
+        body: JSON.stringify({ fileName: selectedFile.name, storagePath }),
       });
 
       if (!saveRes.ok) {
-        try {
-          const errorData = await saveRes.json();
-          throw new Error(errorData.error || '임베딩 생성에 실패했습니다.');
-        } catch {
-          throw new Error('임베딩 생성에 실패했습니다.');
-        }
+        const errorData = await saveRes.json().catch(() => ({}));
+        throw new Error(errorData.error || '임베딩 생성에 실패했습니다.');
       }
 
       setIsEmbedding(false);
 
-      // pdfId 유효성 검증
       if (pdfId && typeof pdfId === 'string' && pdfId.trim() !== '') {
         await onUploadComplete();
       } else {

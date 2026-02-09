@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { evaluateRAG, QuestionType } from '@/shared/lib/langchain/rag-evaluate';
-import { collectionExists, getChromaClient, getCollectionName } from '@/shared/lib/chroma';
+import { createClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { ErrorResponse } from '@/shared/types';
 
 export const runtime = 'nodejs';
 
-/**
- * 평가 요청 타입
- */
 interface EvaluateRequest {
   pdfId: string;
   question: string;
@@ -19,13 +17,19 @@ interface EvaluateRequest {
 /**
  * POST /api/evaluate
  * RAG 시스템 품질 평가 API
- * - Retrieval 품질 평가 (Hit@K, Best Rank, MRR)
- * - Generation 품질 평가 (Correctness, Groundedness, Completeness)
- * - 근본 원인 분류 (OK, RETRIEVAL_FAIL, GENERATION_FAIL, BOTH_FAIL)
- * - 질문 타입 분류 (FACT, COMPOSITE, INFERENCE, NOT_IN_DOC, AMBIGUOUS)
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json<ErrorResponse>(
+        { error: '인증이 필요합니다.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     // 1. 요청 바디 파싱
     const body: EvaluateRequest = await request.json();
     const { pdfId, question, expectedAnswer, topK, questionType } = body;
@@ -33,30 +37,26 @@ export async function POST(request: NextRequest) {
     // 2. 입력 검증
     if (!pdfId || !question) {
       return NextResponse.json<ErrorResponse>(
-        {
-          error: 'pdfId와 question은 필수 입력값입니다.',
-          code: 'INVALID_INPUT',
-        },
+        { error: 'pdfId와 question은 필수 입력값입니다.', code: 'INVALID_INPUT' },
         { status: 400 }
       );
     }
 
     if (question.trim().length === 0) {
       return NextResponse.json<ErrorResponse>(
-        {
-          error: 'question은 비어있을 수 없습니다.',
-          code: 'EMPTY_QUESTION',
-        },
+        { error: 'question은 비어있을 수 없습니다.', code: 'EMPTY_QUESTION' },
         { status: 400 }
       );
     }
 
-    // 3. 컬렉션 존재 확인
-    const client = getChromaClient();
-    const collectionName = getCollectionName(pdfId);
-    const exists = await collectionExists(client, collectionName);
+    // 3. PDF 문서 존재 확인
+    const adminSupabase = createAdminClient();
+    const { count } = await adminSupabase
+      .from('pdf_documents')
+      .select('*', { count: 'exact', head: true })
+      .eq('pdf_id', pdfId);
 
-    if (!exists) {
+    if (!count || count === 0) {
       return NextResponse.json<ErrorResponse>(
         {
           error: '해당 PDF의 임베딩 데이터를 찾을 수 없습니다. 먼저 PDF를 저장해주세요.',

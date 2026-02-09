@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import { getChromaClient, getCollectionName, getOrCreateCollection } from '@/shared/lib/chroma';
-import { loadPDFByPages, pdfFileExists } from '@/shared/lib/pdf-loader';
+import { createClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { loadPDFByPages } from '@/shared/lib/pdf-loader';
 import { embedDocuments } from '@/shared/lib/langchain/embeddings';
-import { SavePdfResponse, ErrorResponse, PDFDocumentMetadata } from '@/shared/types';
+import { SavePdfResponse, ErrorResponse } from '@/shared/types';
 
 export const runtime = 'nodejs';
 
 /**
  * POST /api/pdf/[pdfId]/save
- * 저장된 PDF를 페이지별로 로드
- * google/text-embedding-005로 임베딩 후 Chroma에 upsert
+ * Storage에서 PDF를 다운로드하여 페이지별 임베딩 후 pdf_documents 테이블에 저장
  *
  * Request Body:
  * {
- *   "fileName": "원본파일명.pdf"  // 선택 사항, 없으면 pdfId 기반 파일명 사용
+ *   "fileName": "원본파일명.pdf",
+ *   "storagePath": "userId/pdfId.pdf"
  * }
  */
 export async function POST(
@@ -24,79 +24,83 @@ export async function POST(
   try {
     const { pdfId } = await params;
 
-    // Request body에서 원본 파일명 가져오기 (선택 사항)
-    let originalFileName: string | undefined;
-    try {
-      const body = await request.json();
-      originalFileName = body.fileName;
-    } catch {
-      // body가 없거나 파싱 실패 시 무시
-    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. PDF 파일 존재 확인
-    const { exists, filePath } = pdfFileExists(pdfId);
-    if (!exists || !filePath) {
+    if (!user) {
       return NextResponse.json<ErrorResponse>(
-        {
-          error: 'PDF 파일을 찾을 수 없습니다.',
-          code: 'PDF_NOT_FOUND',
-        },
-        { status: 404 }
+        { error: '인증이 필요합니다.', code: 'UNAUTHORIZED' },
+        { status: 401 }
       );
     }
 
-    // 2. PDF 로드 (페이지별)
-    // 원본 파일명이 제공되면 사용, 없으면 pdfId 기반 파일명 사용
-    const fileName = originalFileName || path.basename(filePath);
-    const { pages, totalPages } = await loadPDFByPages(filePath, fileName);
-
-    if (pages.length === 0) {
+    let fileName: string;
+    let storagePath: string;
+    try {
+      const body = await request.json();
+      fileName = body.fileName;
+      storagePath = body.storagePath;
+    } catch {
       return NextResponse.json<ErrorResponse>(
-        {
-          error: 'PDF에서 텍스트를 추출할 수 없습니다.',
-          code: 'NO_TEXT_EXTRACTED',
-        },
+        { error: 'fileName과 storagePath는 필수 입력값입니다.', code: 'INVALID_INPUT' },
         { status: 400 }
       );
     }
 
-    // 3. 임베딩 생성
+    if (!fileName || !storagePath) {
+      return NextResponse.json<ErrorResponse>(
+        { error: 'fileName과 storagePath는 필수 입력값입니다.', code: 'INVALID_INPUT' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Storage에서 PDF 다운로드 및 페이지별 파싱
+    const { pages, totalPages } = await loadPDFByPages(storagePath, fileName);
+
+    if (pages.length === 0) {
+      return NextResponse.json<ErrorResponse>(
+        { error: 'PDF에서 텍스트를 추출할 수 없습니다.', code: 'NO_TEXT_EXTRACTED' },
+        { status: 400 }
+      );
+    }
+
+    // 2. 임베딩 생성
     const texts = pages.map((page) => page.text);
     const embeddings = await embedDocuments(texts);
 
-    // 4. Chroma에 저장
-    const client = getChromaClient();
-    const collectionName = getCollectionName(pdfId);
-    const collection = await getOrCreateCollection(client, collectionName);
+    // 3. pdf_documents 테이블에 저장 (admin 클라이언트 사용 — RLS 우회)
+    const adminSupabase = createAdminClient();
 
-    // 5. 문서 ID 및 메타데이터 준비
-    const ids = pages.map((page) => `${collectionName}_page_${page.pageNumber}`);
-    const metadatas: PDFDocumentMetadata[] = pages.map((page) => {
+    const documents = pages.map((page, index) => {
       const snippet = page.text.length > 80
         ? page.text.substring(0, 80) + '...'
         : page.text;
 
       return {
-        fileName,
-        pageNumber: page.pageNumber,
+        id: `${pdfId}_page_${page.pageNumber}`,
+        user_id: user.id,
+        pdf_id: pdfId,
+        file_name: fileName,
+        page_number: page.pageNumber,
+        content: page.text,
         snippet,
-        createdAt: new Date().toISOString(),
+        embedding: JSON.stringify(embeddings[index]),
       };
     });
 
-    // 6. Chroma에 upsert
-    await collection.upsert({
-      ids,
-      embeddings,
-      documents: texts,
-      metadatas,
-    });
+    const { error: insertError } = await adminSupabase
+      .from('pdf_documents')
+      .upsert(documents);
+
+    if (insertError) {
+      throw new Error(`벡터 저장 실패: ${insertError.message}`);
+    }
 
     const response: SavePdfResponse = {
       pdfId,
       status: 'embedded',
       totalPages,
-      collectionName,
+      collectionName: pdfId,
     };
 
     return NextResponse.json(response, { status: 200 });

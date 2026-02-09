@@ -60,15 +60,12 @@ export interface Message {
 
 /**
  * PDF Document Metadata
- * Chroma의 Metadata 타입과 호환되도록 index signature 추가
  */
 export interface PDFDocumentMetadata {
   fileName: string;
   pageNumber: number;
   snippet: string;
   createdAt: string;
-  // Chroma Metadata 호환성을 위한 index signature
-  [key: string]: string | number | boolean;
 }
 
 /**

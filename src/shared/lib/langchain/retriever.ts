@@ -1,6 +1,5 @@
-import { getChromaClient, getCollectionName } from '../chroma';
 import { embedText } from './embeddings';
-import { PDFDocumentMetadata } from '@/shared/types';
+import { createAdminClient } from '../supabase/admin';
 
 export interface RetrievalResult {
   pageNumber: number;
@@ -8,11 +7,15 @@ export interface RetrievalResult {
   content: string;
   snippet: string;
   score: number;
-  metadata: PDFDocumentMetadata;
+  metadata: {
+    fileName: string;
+    pageNumber: number;
+    snippet: string;
+  };
 }
 
 /**
- * Chroma에서 유사도 검색 수행
+ * Supabase pgvector에서 유사도 검색 수행
  */
 export async function retrieveRelevantDocuments(
   pdfId: string,
@@ -20,51 +23,47 @@ export async function retrieveRelevantDocuments(
   topK: number = 6
 ): Promise<RetrievalResult[]> {
   try {
-    const client = getChromaClient();
-    const collectionName = getCollectionName(pdfId);
-
-    // 컬렉션 가져오기
-    const collection = await client.getCollection({ name: collectionName });
-
     // 질의 임베딩
     const queryEmbedding = await embedText(query);
 
-    // 유사도 검색
-    const results = await collection.query({
-      queryEmbeddings: [queryEmbedding],
-      nResults: topK,
+    const supabase = createAdminClient();
+
+    // match_documents RPC 호출
+    const { data, error } = await supabase.rpc('match_documents', {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_pdf_id: pdfId,
+      match_count: topK,
     });
 
-    // 결과 변환
-    const documents: RetrievalResult[] = [];
-
-    if (
-      results.documents &&
-      results.documents[0] &&
-      results.metadatas &&
-      results.metadatas[0] &&
-      results.distances &&
-      results.distances[0]
-    ) {
-      for (let i = 0; i < results.documents[0].length; i++) {
-        const doc = results.documents[0][i];
-        const metadata = results.metadatas[0][i] as unknown as PDFDocumentMetadata;
-        const distance = results.distances[0][i];
-
-        if (doc && metadata && distance !== null && distance !== undefined) {
-          documents.push({
-            pageNumber: metadata.pageNumber,
-            fileName: metadata.fileName,
-            content: doc,
-            snippet: metadata.snippet || '',
-            score: 1 - distance, // distance를 similarity score로 변환 (cosine similarity)
-            metadata,
-          });
-        }
-      }
+    if (error) {
+      throw new Error(`벡터 검색 실패: ${error.message}`);
     }
 
-    return documents;
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // 결과 변환
+    return data.map((doc: {
+      id: string;
+      pdf_id: string;
+      file_name: string;
+      page_number: number;
+      content: string;
+      snippet: string;
+      similarity: number;
+    }) => ({
+      pageNumber: doc.page_number,
+      fileName: doc.file_name,
+      content: doc.content,
+      snippet: doc.snippet || '',
+      score: doc.similarity,
+      metadata: {
+        fileName: doc.file_name,
+        pageNumber: doc.page_number,
+        snippet: doc.snippet || '',
+      },
+    }));
   } catch (error) {
     throw new Error(
       `문서 검색 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`

@@ -1,6 +1,7 @@
 import { Message } from "@/shared/stores/chatStore";
 import { ThemeToggleButton } from "@/shared/components/ThemeToggleButton";
 import { useCredits } from "@/shared/hooks/useCredits";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { MessageListView } from "./MessageListView";
 import { MessageInputView } from "./MessageInputView";
 
@@ -22,6 +23,7 @@ export function ChatView({
   onBack,
 }: ChatViewProps) {
   const { balance, isLoading: isLoadingCredits } = useCredits();
+  const { user, signOut } = useAuth();
 
   return (
     <div
@@ -136,6 +138,28 @@ export function ChatView({
 
           {/* 액션 버튼 그룹 */}
           <div className="flex items-center gap-3">
+            {/* 사용자 아바타 */}
+            {user?.user_metadata?.avatar_url && (
+              <img
+                src={user.user_metadata.avatar_url}
+                alt="프로필"
+                className="h-8 w-8 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            )}
+
+            {/* 로그아웃 버튼 */}
+            <button
+              onClick={signOut}
+              className="focus-ring rounded-lg px-3 py-1.5 text-xs transition-colors"
+              style={{
+                color: "var(--color-ink-muted)",
+                border: "1px solid var(--color-ai-border)",
+              }}
+            >
+              로그아웃
+            </button>
+
             {/* 테마 토글 버튼 */}
             <ThemeToggleButton size="md" />
 
