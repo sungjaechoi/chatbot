@@ -11,7 +11,7 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
-  const { messages, isLoading, addMessage, setIsLoading, setError } = useChatStore();
+  const { messages, isLoading, isLoadingHistory, historyError, addMessage, setIsLoading, setError } = useChatStore();
   const { pdfId, pdfFileName } = usePdfStore();
   const { fetchCredits } = useCreditsStore();
 
@@ -89,6 +89,8 @@ export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
     <ChatView
       messages={messages}
       isLoading={isLoading}
+      isLoadingHistory={isLoadingHistory}
+      historyError={historyError}
       pdfFileName={pdfFileName}
       onSendMessage={handleSendMessage}
       onNewPdf={onNewPdf}

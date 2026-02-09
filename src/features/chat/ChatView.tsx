@@ -8,6 +8,8 @@ import { MessageInputView } from "./MessageInputView";
 interface ChatViewProps {
   messages: Message[];
   isLoading: boolean;
+  isLoadingHistory: boolean;
+  historyError: string | null;
   pdfFileName: string | null;
   onSendMessage: (message: string) => void;
   onNewPdf: () => void;
@@ -17,6 +19,8 @@ interface ChatViewProps {
 export function ChatView({
   messages,
   isLoading,
+  isLoadingHistory,
+  historyError,
   pdfFileName,
   onSendMessage,
   onNewPdf,
@@ -192,10 +196,10 @@ export function ChatView({
       </header>
 
       {/* 메시지 영역 */}
-      <MessageListView messages={messages} isLoading={isLoading} />
+      <MessageListView messages={messages} isLoading={isLoading} isLoadingHistory={isLoadingHistory} historyError={historyError} />
 
       {/* 입력 영역 */}
-      <MessageInputView isLoading={isLoading} onSend={onSendMessage} />
+      <MessageInputView isLoading={isLoading} isLoadingHistory={isLoadingHistory} historyError={historyError} onSend={onSendMessage} />
     </div>
   );
 }

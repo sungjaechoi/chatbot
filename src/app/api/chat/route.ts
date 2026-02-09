@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { executeRAGPipeline } from '@/shared/lib/langchain/rag';
 import { createClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { ChatRequest, ChatResponse, ErrorResponse } from '@/shared/types';
+import { getMessages } from '@/shared/lib/supabase/chat-service';
+import { ChatRequest, ChatResponse, ErrorResponse, ChatHistoryMessage } from '@/shared/types';
 
 export const runtime = 'nodejs';
 
@@ -59,11 +60,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. RAG 파이프라인 실행
-    const topK = parseInt(process.env.TOP_K || '6', 10);
-    const { answer, sources, usage } = await executeRAGPipeline(pdfId, message, topK);
+    // 4. 대화 히스토리 조회 (최근 N개 메시지, 에러 메시지 제외)
+    const historyLimit = parseInt(process.env.CHAT_HISTORY_LIMIT || '10', 10);
+    let chatHistory: ChatHistoryMessage[] = [];
 
-    // 5. 채팅 메시지 DB 저장
+    try {
+      const messages = await getMessages(user.id, pdfId);
+
+      // is_error = true인 메시지 제외 후 최근 N개 선택
+      const validMessages = messages
+        .filter((msg) => !msg.is_error)
+        .slice(-historyLimit);
+
+      chatHistory = validMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+    } catch (error) {
+      // 히스토리 조회 실패해도 RAG는 계속 진행 (첫 대화처럼 처리)
+      console.error('대화 히스토리 조회 실패:', error);
+    }
+
+    // 5. RAG 파이프라인 실행 (대화 히스토리 포함)
+    const topK = parseInt(process.env.TOP_K || '6', 10);
+    const { answer, sources, usage } = await executeRAGPipeline(pdfId, message, topK, chatHistory);
+
+    // 6. 채팅 메시지 DB 저장
     try {
       // 세션 조회 또는 생성
       const { data: session } = await adminSupabase

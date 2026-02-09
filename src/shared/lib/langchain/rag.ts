@@ -1,4 +1,4 @@
-import { ChatSource, UsageInfo } from '@/shared/types';
+import { ChatSource, UsageInfo, ChatHistoryMessage } from '@/shared/types';
 import { retrieveRelevantDocuments, formatContextsForLLM } from './retriever';
 import { generateAnswer, createRAGPrompt, createRAGSystemPrompt } from './llm';
 
@@ -8,11 +8,17 @@ import { generateAnswer, createRAGPrompt, createRAGSystemPrompt } from './llm';
  * 2. Retriever로 유사도 검색
  * 3. 프롬프트 구성
  * 4. LLM 호출 및 응답 생성
+ *
+ * @param pdfId - PDF 문서 ID
+ * @param question - 사용자 질문
+ * @param topK - 검색할 문서 개수
+ * @param chatHistory - 이전 대화 히스토리 (optional)
  */
 export async function executeRAGPipeline(
   pdfId: string,
   question: string,
-  topK: number = 6
+  topK: number = 6,
+  chatHistory?: ChatHistoryMessage[]
 ): Promise<{
   answer: string;
   sources: ChatSource[];
@@ -36,8 +42,8 @@ export async function executeRAGPipeline(
     const systemPrompt = createRAGSystemPrompt();
     const prompt = createRAGPrompt(question, contexts);
 
-    // 4. LLM 응답 생성
-    const { result } = await generateAnswer(prompt, systemPrompt);
+    // 4. LLM 응답 생성 (대화 히스토리 전달)
+    const { result } = await generateAnswer(prompt, systemPrompt, {}, chatHistory);
 
     // 5. 전체 응답 텍스트 수집
     let fullAnswer = '';

@@ -1,4 +1,5 @@
 import { streamText } from "ai";
+import { ChatHistoryMessage } from "@/shared/types";
 
 /**
  * Vercel AI Gateway를 통한 LLM 호출
@@ -59,23 +60,61 @@ ${contextText}
  * LLM 스트리밍 응답 생성
  * test.ts와 동일한 방식: 문자열로 모델 지정 (Vercel AI Gateway)
  *
+ * 대화 히스토리가 제공되면 messages 배열 형식으로 사용하고,
+ * 없으면 기존처럼 단일 prompt로 동작 (하위 호환)
+ *
+ * @param prompt - 현재 RAG 프롬프트 (컨텍스트 + 질문)
+ * @param systemPrompt - 시스템 프롬프트
+ * @param config - 모델 설정
+ * @param chatHistory - 이전 대화 히스토리 (optional)
  * @returns LLMResult - 스트리밍 결과와 사용한 모델명
  */
 export async function generateAnswer(
   prompt: string,
   systemPrompt: string,
   config: LLMConfig = {},
+  chatHistory?: ChatHistoryMessage[],
 ): Promise<LLMResult> {
   // test.ts와 동일: 문자열로 모델 지정 "google/gemini-2.5-flash"
   const model =
     config.model || process.env.LLM_MODEL || "google/gemini-2.5-flash";
 
-  const result = streamText({
-    model,
-    system: systemPrompt,
-    prompt,
-    temperature: config.temperature ?? 0.3,
-  });
+  let result;
+
+  // 대화 히스토리가 있으면 messages 배열 형식 사용
+  if (chatHistory && chatHistory.length > 0) {
+    // role별 분기로 정확한 리터럴 타입 보장
+    const historyMessages = chatHistory.map((msg) => {
+      if (msg.role === 'user') {
+        return { role: 'user' as const, content: msg.content };
+      } else {
+        return { role: 'assistant' as const, content: msg.content };
+      }
+    });
+
+    const messages = [
+      ...historyMessages,
+      {
+        role: 'user' as const,
+        content: prompt,
+      },
+    ];
+
+    result = streamText({
+      model,
+      system: systemPrompt,
+      messages,
+      temperature: config.temperature ?? 0.3,
+    });
+  } else {
+    // 히스토리가 없으면 기존 방식 (단일 prompt)
+    result = streamText({
+      model,
+      system: systemPrompt,
+      prompt,
+      temperature: config.temperature ?? 0.3,
+    });
+  }
 
   return {
     result,

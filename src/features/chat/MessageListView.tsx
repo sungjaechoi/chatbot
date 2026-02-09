@@ -5,6 +5,8 @@ import ReactMarkdown, { Components } from 'react-markdown';
 interface MessageListViewProps {
   messages: Message[];
   isLoading?: boolean;
+  isLoadingHistory?: boolean;
+  historyError?: string | null;
 }
 
 // 마크다운 렌더링 컴포넌트
@@ -48,14 +50,20 @@ const markdownComponents: Components = {
   ),
 };
 
-export function MessageListView({ messages, isLoading }: MessageListViewProps) {
+export function MessageListView({ messages, isLoading, isLoadingHistory, historyError }: MessageListViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLength = useRef<number>(0);
 
   useEffect(() => {
     if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      const diff = messages.length - prevMessagesLength.current;
+      // 히스토리 로딩 중이거나, 메시지가 3개 이상 추가되면 instant scroll (히스토리 로드)
+      // 1-2개 추가는 smooth scroll (일반 채팅)
+      const behavior = (isLoadingHistory || diff >= 3) ? 'instant' : 'smooth';
+      messagesEndRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior });
+      prevMessagesLength.current = messages.length;
     }
-  }, [messages]);
+  }, [messages, isLoadingHistory]);
 
   return (
     <div
@@ -63,17 +71,89 @@ export function MessageListView({ messages, isLoading }: MessageListViewProps) {
       style={{ background: 'transparent' }}
     >
       <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        {messages.length === 0 ? (
-          <EmptyState />
+        {isLoadingHistory ? (
+          <HistoryLoadingIndicator />
+        ) : messages.length > 0 ? (
+          <>
+            {historyError && <HistoryErrorBanner error={historyError} />}
+            <div className="space-y-6">
+              {messages.map((message, index) => (
+                <MessageBubble key={message.id} message={message} index={index} />
+              ))}
+              {isLoading && <LoadingIndicator />}
+            </div>
+          </>
+        ) : historyError ? (
+          <HistoryErrorState error={historyError} />
         ) : (
-          <div className="space-y-6">
-            {messages.map((message, index) => (
-              <MessageBubble key={message.id} message={message} index={index} />
-            ))}
-            {isLoading && <LoadingIndicator />}
-          </div>
+          <EmptyState />
         )}
         <div ref={messagesEndRef} className="h-4" />
+      </div>
+    </div>
+  );
+}
+
+function HistoryErrorBanner({ error }: { error: string }) {
+  return (
+    <div
+      className="mb-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+      style={{
+        background: 'var(--color-error-bg)',
+        color: 'var(--color-error)',
+        border: '1px solid rgba(185, 28, 28, 0.2)',
+      }}
+    >
+      <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+      </svg>
+      <span>{error}</span>
+    </div>
+  );
+}
+
+function HistoryErrorState({ error }: { error: string }) {
+  return (
+    <div className="flex h-full min-h-[400px] items-center justify-center">
+      <div className="max-w-md text-center">
+        {/* 에러 아이콘 */}
+        <div
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-error-bg) 0%, transparent 100%)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          <svg
+            className="h-10 w-10"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            style={{ color: 'var(--color-error)' }}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+            />
+          </svg>
+        </div>
+
+        <h2
+          className="mb-3 text-2xl"
+          style={{ color: 'var(--color-ink)' }}
+        >
+          {error}
+        </h2>
+        <p
+          className="text-sm leading-relaxed"
+          style={{ color: 'var(--color-ink-muted)' }}
+        >
+          이전 대화 기록을 불러오지 못했지만,
+          <br />
+          새로운 질문을 시작하실 수 있습니다.
+        </p>
       </div>
     </div>
   );
@@ -369,6 +449,49 @@ function SourcesSection({ sources }: { sources: Message['sources'] }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function HistoryLoadingIndicator() {
+  return (
+    <div className="flex h-full min-h-[400px] items-center justify-center">
+      <div className="max-w-md text-center">
+        {/* 로딩 아이콘 */}
+        <div
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-accent-glow) 0%, transparent 100%)',
+            border: '1px solid var(--color-ai-border)'
+          }}
+        >
+          <div className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="h-2 w-2 rounded-full animate-pulse-subtle"
+                style={{
+                  background: 'var(--color-accent)',
+                  animationDelay: `${i * 200}ms`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <h2
+          className="mb-3 text-2xl"
+          style={{ color: 'var(--color-ink)' }}
+        >
+          이전 대화를 불러오는 중...
+        </h2>
+        <p
+          className="text-sm leading-relaxed"
+          style={{ color: 'var(--color-ink-muted)' }}
+        >
+          잠시만 기다려주세요
+        </p>
       </div>
     </div>
   );

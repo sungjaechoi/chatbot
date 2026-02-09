@@ -2,12 +2,16 @@ import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 
 interface MessageInputViewProps {
   isLoading: boolean;
+  isLoadingHistory: boolean;
+  historyError?: string | null;
   onSend: (message: string) => void;
 }
 
-export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
+export function MessageInputView({ isLoading, isLoadingHistory, historyError, onSend }: MessageInputViewProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // historyError가 있을 때는 isLoadingHistory를 무시하여 입력 활성화
+  const isDisabled = isLoading || (isLoadingHistory && !historyError);
 
   // 텍스트 영역 자동 높이 조절
   useEffect(() => {
@@ -20,7 +24,7 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
 
   const handleSubmit = () => {
     const trimmedInput = input.trim();
-    if (trimmedInput && !isLoading) {
+    if (trimmedInput && !isDisabled) {
       onSend(trimmedInput);
       setInput('');
     }
@@ -64,8 +68,8 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="문서에 대해 질문해보세요..."
-            disabled={isLoading}
+            placeholder={isLoadingHistory ? "이전 대화를 불러오는 중..." : "문서에 대해 질문해보세요..."}
+            disabled={isDisabled}
             rows={1}
             className="flex-1 resize-none bg-transparent px-4 py-3 text-[15px] leading-relaxed placeholder:opacity-50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             style={{
@@ -78,19 +82,19 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
           {/* 전송 버튼 */}
           <button
             onClick={handleSubmit}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isDisabled}
             className="focus-ring btn-lift flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-40"
             style={{
-              background: input.trim() && !isLoading
+              background: input.trim() && !isDisabled
                 ? 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-soft) 100%)'
                 : 'var(--color-cream-dark)',
-              boxShadow: input.trim() && !isLoading
+              boxShadow: input.trim() && !isDisabled
                 ? '0 4px 12px var(--color-accent-glow)'
                 : 'none'
             }}
             aria-label="전송"
           >
-            {isLoading ? (
+            {isDisabled ? (
               <svg
                 className="h-5 w-5 animate-spin"
                 fill="none"

@@ -116,6 +116,14 @@ export interface CreditsResponse {
 }
 
 /**
+ * Chat History Message (for RAG pipeline)
+ */
+export interface ChatHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
  * Error Response
  */
 export interface ErrorResponse {
