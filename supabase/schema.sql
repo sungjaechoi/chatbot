@@ -55,10 +55,15 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   pdf_id TEXT NOT NULL,
+  title TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, pdf_id)
+  last_message_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 다중 세션 지원을 위한 인덱스 (UNIQUE 제약 제거됨)
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_pdf
+  ON chat_sessions(user_id, pdf_id);
 
 ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
 
@@ -66,6 +71,16 @@ CREATE POLICY "Users can CRUD own sessions"
   ON chat_sessions FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- ============================================================================
+-- 마이그레이션: 기존 테이블에 다중 세션 지원 추가
+-- ============================================================================
+-- 기존 DB에 적용할 경우 아래 SQL을 순차 실행:
+--
+-- ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS title TEXT;
+-- ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMPTZ DEFAULT now();
+-- ALTER TABLE chat_sessions DROP CONSTRAINT IF EXISTS chat_sessions_user_id_pdf_id_key;
+-- CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_pdf ON chat_sessions(user_id, pdf_id);
 
 -- ============================================================================
 -- 5. chat_messages 테이블

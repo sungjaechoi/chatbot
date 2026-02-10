@@ -23,6 +23,7 @@ export interface SavePdfResponse {
  */
 export interface ChatRequest {
   pdfId: string;
+  sessionId: string;
   message: string;
 }
 
@@ -121,6 +122,60 @@ export interface CreditsResponse {
 export interface ChatHistoryMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+/**
+ * Chat Session (프론트엔드용)
+ */
+export interface ChatSession {
+  id: string;
+  pdfId: string;
+  title: string | null;
+  createdAt: string;
+  lastMessageAt: string;
+}
+
+/**
+ * Create Session Request
+ */
+export interface CreateSessionRequest {
+  pdfId: string;
+  title?: string;
+}
+
+/**
+ * Update Session Title Request
+ */
+export interface UpdateSessionTitleRequest {
+  title: string;
+}
+
+/**
+ * Session List Response
+ */
+export interface SessionListResponse {
+  sessions: ChatSession[];
+}
+
+/**
+ * Session Response
+ */
+export interface SessionResponse {
+  session: ChatSession;
+}
+
+/**
+ * Title Generation Response
+ */
+export interface TitleGenerationResponse {
+  title: string;
+}
+
+/**
+ * Messages Response
+ */
+export interface MessagesResponse {
+  messages: Message[];
 }
 
 /**

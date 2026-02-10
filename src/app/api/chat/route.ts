@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { executeRAGPipeline } from '@/shared/lib/langchain/rag';
 import { createClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getMessages } from '@/shared/lib/supabase/chat-service';
+import { getMessagesBySessionId, verifySessionOwner, updateSessionLastMessageAt } from '@/shared/lib/supabase/chat-service';
 import { ChatRequest, ChatResponse, ErrorResponse, ChatHistoryMessage } from '@/shared/types';
 
 export const runtime = 'nodejs';
 
 /**
  * POST /api/chat
- * body: { pdfId, message }
+ * body: { pdfId, sessionId, message }
  * 질의 임베딩 → pgvector TopK 검색 → LLM 답변 생성
  */
 export async function POST(request: NextRequest) {
@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
 
     // 1. 요청 바디 파싱
     const body: ChatRequest = await request.json();
-    const { pdfId, message } = body;
+    const { pdfId, sessionId, message } = body;
 
     // 2. 입력 검증
-    if (!pdfId || !message) {
+    if (!pdfId || !sessionId || !message) {
       return NextResponse.json<ErrorResponse>(
-        { error: 'pdfId와 message는 필수 입력값입니다.', code: 'INVALID_INPUT' },
+        { error: 'pdfId, sessionId, message는 필수 입력값입니다.', code: 'INVALID_INPUT' },
         { status: 400 }
       );
     }
@@ -43,7 +43,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. PDF 문서 존재 확인
+    // 3. 세션 소유자 검증
+    const isOwner = await verifySessionOwner(sessionId, user.id);
+    if (!isOwner) {
+      return NextResponse.json<ErrorResponse>(
+        { error: '이 세션에 접근할 권한이 없습니다.', code: 'FORBIDDEN' },
+        { status: 403 }
+      );
+    }
+
+    // 4. PDF 문서 존재 확인
     const adminSupabase = createAdminClient();
     const { count } = await adminSupabase
       .from('pdf_documents')
@@ -60,12 +69,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 대화 히스토리 조회 (최근 N개 메시지, 에러 메시지 제외)
+    // 5. 대화 히스토리 조회 (최근 N개 메시지, 에러 메시지 제외)
     const historyLimit = parseInt(process.env.CHAT_HISTORY_LIMIT || '10', 10);
     let chatHistory: ChatHistoryMessage[] = [];
 
     try {
-      const messages = await getMessages(user.id, pdfId);
+      const messages = await getMessagesBySessionId(sessionId);
 
       // is_error = true인 메시지 제외 후 최근 N개 선택
       const validMessages = messages
@@ -81,32 +90,12 @@ export async function POST(request: NextRequest) {
       console.error('대화 히스토리 조회 실패:', error);
     }
 
-    // 5. RAG 파이프라인 실행 (대화 히스토리 포함)
+    // 6. RAG 파이프라인 실행 (대화 히스토리 포함)
     const topK = parseInt(process.env.TOP_K || '6', 10);
     const { answer, sources, usage } = await executeRAGPipeline(pdfId, message, topK, chatHistory);
 
-    // 6. 채팅 메시지 DB 저장
+    // 7. 채팅 메시지 DB 저장
     try {
-      // 세션 조회 또는 생성
-      const { data: session } = await adminSupabase
-        .from('chat_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('pdf_id', pdfId)
-        .single();
-
-      let sessionId: string;
-      if (session) {
-        sessionId = session.id;
-      } else {
-        const { data: newSession } = await adminSupabase
-          .from('chat_sessions')
-          .insert({ user_id: user.id, pdf_id: pdfId })
-          .select('id')
-          .single();
-        sessionId = newSession!.id;
-      }
-
       // user 메시지 저장
       await adminSupabase.from('chat_messages').insert({
         session_id: sessionId,
@@ -122,8 +111,12 @@ export async function POST(request: NextRequest) {
         sources: sources || null,
         usage: usage || null,
       });
-    } catch {
+
+      // last_message_at 업데이트
+      await updateSessionLastMessageAt(sessionId);
+    } catch (error) {
       // DB 저장 실패해도 응답은 반환
+      console.error('메시지 저장 실패:', error);
     }
 
     const response: ChatResponse = {
