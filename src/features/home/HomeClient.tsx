@@ -11,6 +11,7 @@ import { PdfUploadModalContainer } from "@/features/pdf/PdfUploadModalContainer"
 import { SpinnerView } from "@/shared/components/SpinnerView";
 import { CollectionListView } from "@/features/pdf/CollectionListView";
 import { CreditBlockOverlay } from "@/shared/components/CreditBlockOverlay";
+import { AccountDeleteModal } from "@/shared/components/AccountDeleteModal";
 import type { CollectionInfo } from "@/shared/types";
 
 type PageState = "loading" | "error" | "empty" | "multiple_select";
@@ -39,6 +40,8 @@ export default function HomeClient() {
     })),
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -69,6 +72,39 @@ export default function HomeClient() {
       const errorMessage =
         error instanceof Error ? error.message : "삭제 중 오류가 발생했습니다.";
       alert(errorMessage);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let errorMessage = '회원 탈퇴에 실패했습니다.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      alert(data.message || '회원 탈퇴가 완료되었습니다.');
+
+      // 로그아웃 후 로그인 페이지로 리다이렉트
+      await signOut();
+      window.location.href = '/login';
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '회원 탈퇴 중 오류가 발생했습니다.';
+      alert(errorMessage);
+      setIsDeletingAccount(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -247,12 +283,20 @@ export default function HomeClient() {
           isDeletingPdf={isDeletingPdf}
           user={user}
           onSignOut={signOut}
+          onDeleteAccount={() => setIsDeleteModalOpen(true)}
         />
 
         <PdfUploadModalContainer
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onUploadComplete={handleUploadComplete}
+        />
+
+        <AccountDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteAccount}
+          isDeleting={isDeletingAccount}
         />
       </>
     );

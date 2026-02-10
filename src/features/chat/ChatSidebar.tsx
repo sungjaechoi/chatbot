@@ -6,6 +6,7 @@ import { useChatStore, ChatSession } from '@/shared/stores/chatStore';
 import { usePdfStore } from '@/shared/stores/pdfStore';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton';
+import { AccountDeleteModal } from '@/shared/components/AccountDeleteModal';
 
 interface ChatSidebarProps {
   onNewPdf: () => void;
@@ -26,6 +27,8 @@ export function ChatSidebar({ onNewPdf, onClose }: ChatSidebarProps) {
     isCreatingSession,
   } = useChatStore();
   const { collections } = usePdfStore();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handlePdfClick = (pdfId: string) => {
     router.push(`/chat/${pdfId}`);
@@ -35,6 +38,39 @@ export function ChatSidebar({ onNewPdf, onClose }: ChatSidebarProps) {
   const handleNewSession = async () => {
     if (!currentPdfId || isCreatingSession) return;
     await createNewSession(currentPdfId);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let errorMessage = '회원 탈퇴에 실패했습니다.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      alert(data.message || '회원 탈퇴가 완료되었습니다.');
+
+      // 로그아웃 후 로그인 페이지로 리다이렉트
+      await signOut();
+      window.location.href = '/login';
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '회원 탈퇴 중 오류가 발생했습니다.';
+      alert(errorMessage);
+      setIsDeletingAccount(false);
+      setIsDeleteModalOpen(false);
+    }
   };
 
   return (
@@ -164,6 +200,25 @@ export function ChatSidebar({ onNewPdf, onClose }: ChatSidebarProps) {
           </div>
           <ThemeToggleButton size="sm" />
           <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="focus-ring sidebar-icon-btn shrink-0 rounded-lg p-1.5 transition-colors"
+            aria-label="회원 탈퇴"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"
+              />
+            </svg>
+          </button>
+          <button
             onClick={signOut}
             className="focus-ring sidebar-icon-btn shrink-0 rounded-lg p-1.5 transition-colors"
             aria-label="로그아웃"
@@ -184,6 +239,14 @@ export function ChatSidebar({ onNewPdf, onClose }: ChatSidebarProps) {
           </button>
         </div>
       </div>
+
+      {/* 회원 탈퇴 모달 */}
+      <AccountDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={isDeletingAccount}
+      />
     </div>
   );
 }

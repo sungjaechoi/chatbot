@@ -10,6 +10,7 @@ interface CollectionListViewProps {
   isDeletingPdf: boolean;
   user?: User | null;
   onSignOut?: () => void;
+  onDeleteAccount?: () => void;
 }
 
 export function CollectionListView({
@@ -20,6 +21,7 @@ export function CollectionListView({
   isDeletingPdf,
   user,
   onSignOut,
+  onDeleteAccount,
 }: CollectionListViewProps) {
   const { balance, isLoading: isLoadingCredits } = useCredits();
 
@@ -138,6 +140,31 @@ export function CollectionListView({
                     }}
                     referrerPolicy="no-referrer"
                   />
+                )}
+                {onDeleteAccount && (
+                  <button
+                    onClick={onDeleteAccount}
+                    className="focus-ring rounded-lg px-2.5 py-1 text-xs transition-colors"
+                    style={{
+                      color: "var(--color-ink-muted)",
+                      border: "1px solid var(--color-ai-border)",
+                    }}
+                    aria-label="회원 탈퇴"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"
+                      />
+                    </svg>
+                  </button>
                 )}
                 {onSignOut && (
                   <button
