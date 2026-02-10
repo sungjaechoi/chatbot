@@ -403,3 +403,32 @@ h1, h2, h3 {
 .sidebar-footer {
   border-top: 1px solid var(--color-ai-border);
 }
+
+/* 설정 패널 */
+.settings-panel {
+  animation: settings-panel-in 0.2s ease-out;
+}
+
+@keyframes settings-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.settings-panel-item {
+  color: var(--color-ink);
+}
+
+.settings-panel-item:hover {
+  background: var(--color-cream-dark);
+}
+
+.settings-panel-icon {
+  background: var(--color-accent-glow);
+  color: var(--color-accent);
+}
