@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePdfStore } from '@/shared/stores/pdfStore';
 import { useChatStore } from '@/shared/stores/chatStore';
+import { useCredits } from '@/shared/hooks/useCredits';
 import { ChatContainer } from '@/features/chat/ChatContainer';
 import { PdfUploadModalContainer } from '@/features/pdf/PdfUploadModalContainer';
 import { SpinnerView } from '@/shared/components/SpinnerView';
+import { CreditBlockOverlay } from '@/shared/components/CreditBlockOverlay';
 
 export default function ChatPageClient() {
   const params = useParams();
@@ -18,10 +20,10 @@ export default function ChatPageClient() {
     error: collectionsError,
     fetchCollections,
     selectCollection,
-    clearSelection,
   } = usePdfStore();
 
-  const { loadHistory } = useChatStore();
+  const { initializeForPdf } = useChatStore();
+  const { balance, isBlocked, isLoading: isLoadingCredits } = useCredits();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -70,10 +72,10 @@ export default function ChatPageClient() {
     collectionsError,
   ]);
 
-  // 채팅 히스토리 로드
+  // 채팅 초기화 (세션 로드)
   useEffect(() => {
     if (storePdfId === urlPdfId) {
-      loadHistory(urlPdfId);
+      initializeForPdf(urlPdfId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storePdfId, urlPdfId]);
@@ -93,11 +95,6 @@ export default function ChatPageClient() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notFound]);
-
-  const handleBack = () => {
-    clearSelection();
-    router.push('/');
-  };
 
   const handleNewPdf = () => {
     setIsModalOpen(true);
@@ -147,6 +144,11 @@ export default function ChatPageClient() {
         </div>
       </BackgroundLayout>
     );
+  }
+
+  // 크레딧 차단 (로딩 완료 후에만 판정)
+  if (!isLoadingCredits && isBlocked) {
+    return <CreditBlockOverlay balance={balance} />;
   }
 
   // 에러
@@ -282,7 +284,7 @@ export default function ChatPageClient() {
 
   return (
     <>
-      <ChatContainer onNewPdf={handleNewPdf} onBack={handleBack} />
+      <ChatContainer onNewPdf={handleNewPdf} />
       <PdfUploadModalContainer
         isOpen={isModalOpen}
         onClose={handleCloseModal}

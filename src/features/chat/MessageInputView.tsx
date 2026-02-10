@@ -2,16 +2,14 @@ import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 
 interface MessageInputViewProps {
   isLoading: boolean;
-  isLoadingHistory: boolean;
-  historyError?: string | null;
+  error?: string | null;
   onSend: (message: string) => void;
 }
 
-export function MessageInputView({ isLoading, isLoadingHistory, historyError, onSend }: MessageInputViewProps) {
+export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // historyError가 있을 때는 isLoadingHistory를 무시하여 입력 활성화
-  const isDisabled = isLoading || (isLoadingHistory && !historyError);
+  const isDisabled = isLoading;
 
   // 텍스트 영역 자동 높이 조절
   useEffect(() => {
@@ -68,7 +66,11 @@ export function MessageInputView({ isLoading, isLoadingHistory, historyError, on
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isLoadingHistory ? "이전 대화를 불러오는 중..." : "문서에 대해 질문해보세요..."}
+            placeholder={
+              isLoading
+                ? "답변을 생성하는 중..."
+                : "문서에 대해 질문해보세요..."
+            }
             disabled={isDisabled}
             rows={1}
             className="flex-1 resize-none bg-transparent px-4 py-3 text-[15px] leading-relaxed placeholder:opacity-50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"

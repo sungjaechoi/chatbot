@@ -3,20 +3,19 @@
 import { useChatStore } from '@/shared/stores/chatStore';
 import { usePdfStore } from '@/shared/stores/pdfStore';
 import { useCreditsStore } from '@/shared/stores/creditsStore';
-import { ChatView } from './ChatView';
+import { ChatLayout } from './ChatLayout';
 
 interface ChatContainerProps {
   onNewPdf: () => void;
-  onBack?: () => void;
 }
 
-export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
-  const { messages, isLoading, isLoadingHistory, historyError, addMessage, setIsLoading, setError } = useChatStore();
+export function ChatContainer({ onNewPdf }: ChatContainerProps) {
+  const { isLoading, currentSessionId, addMessage, setIsLoading, setError, createNewSession } = useChatStore();
   const { pdfId, pdfFileName } = usePdfStore();
   const { fetchCredits } = useCreditsStore();
 
   const handleSendMessage = async (content: string) => {
-    if (!pdfId || isLoading) return;
+    if (!pdfId || !currentSessionId || isLoading) return;
 
     try {
       // 사용자 메시지 추가
@@ -31,7 +30,7 @@ export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
       setIsLoading(true);
       setError(null);
 
-      // API 호출
+      // API 호출 (sessionId 포함)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -39,6 +38,7 @@ export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
         },
         body: JSON.stringify({
           pdfId,
+          sessionId: currentSessionId,
           message: content,
         }),
       });
@@ -85,16 +85,17 @@ export function ChatContainer({ onNewPdf, onBack }: ChatContainerProps) {
     }
   };
 
+  const handleNewSession = async () => {
+    if (!pdfId) return;
+    await createNewSession(pdfId);
+  };
+
   return (
-    <ChatView
-      messages={messages}
-      isLoading={isLoading}
-      isLoadingHistory={isLoadingHistory}
-      historyError={historyError}
-      pdfFileName={pdfFileName}
+    <ChatLayout
       onSendMessage={handleSendMessage}
+      onNewSession={handleNewSession}
       onNewPdf={onNewPdf}
-      onBack={onBack}
+      pdfFileName={pdfFileName}
     />
   );
 }

@@ -5,8 +5,7 @@ import ReactMarkdown, { Components } from 'react-markdown';
 interface MessageListViewProps {
   messages: Message[];
   isLoading?: boolean;
-  isLoadingHistory?: boolean;
-  historyError?: string | null;
+  error?: string | null;
 }
 
 // 마크다운 렌더링 컴포넌트
@@ -50,20 +49,20 @@ const markdownComponents: Components = {
   ),
 };
 
-export function MessageListView({ messages, isLoading, isLoadingHistory, historyError }: MessageListViewProps) {
+export function MessageListView({ messages, isLoading, error }: MessageListViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef<number>(0);
 
   useEffect(() => {
     if (messages.length > 0) {
       const diff = messages.length - prevMessagesLength.current;
-      // 히스토리 로딩 중이거나, 메시지가 3개 이상 추가되면 instant scroll (히스토리 로드)
+      // 메시지가 3개 이상 추가되면 instant scroll (세션 로드)
       // 1-2개 추가는 smooth scroll (일반 채팅)
-      const behavior = (isLoadingHistory || diff >= 3) ? 'instant' : 'smooth';
+      const behavior = diff >= 3 ? 'instant' : 'smooth';
       messagesEndRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior });
       prevMessagesLength.current = messages.length;
     }
-  }, [messages, isLoadingHistory]);
+  }, [messages]);
 
   return (
     <div
@@ -71,11 +70,9 @@ export function MessageListView({ messages, isLoading, isLoadingHistory, history
       style={{ background: 'transparent' }}
     >
       <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        {isLoadingHistory ? (
-          <HistoryLoadingIndicator />
-        ) : messages.length > 0 ? (
+        {messages.length > 0 ? (
           <>
-            {historyError && <HistoryErrorBanner error={historyError} />}
+            {error && <ErrorBanner error={error} />}
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <MessageBubble key={message.id} message={message} index={index} />
@@ -83,8 +80,10 @@ export function MessageListView({ messages, isLoading, isLoadingHistory, history
               {isLoading && <LoadingIndicator />}
             </div>
           </>
-        ) : historyError ? (
-          <HistoryErrorState error={historyError} />
+        ) : isLoading ? (
+          <SessionLoadingState />
+        ) : error ? (
+          <ErrorState error={error} />
         ) : (
           <EmptyState />
         )}
@@ -94,7 +93,7 @@ export function MessageListView({ messages, isLoading, isLoadingHistory, history
   );
 }
 
-function HistoryErrorBanner({ error }: { error: string }) {
+function ErrorBanner({ error }: { error: string }) {
   return (
     <div
       className="mb-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
@@ -112,7 +111,7 @@ function HistoryErrorBanner({ error }: { error: string }) {
   );
 }
 
-function HistoryErrorState({ error }: { error: string }) {
+function ErrorState({ error }: { error: string }) {
   return (
     <div className="flex h-full min-h-[400px] items-center justify-center">
       <div className="max-w-md text-center">
@@ -144,15 +143,62 @@ function HistoryErrorState({ error }: { error: string }) {
           className="mb-3 text-2xl"
           style={{ color: 'var(--color-ink)' }}
         >
-          {error}
+          오류가 발생했습니다
         </h2>
         <p
           className="text-sm leading-relaxed"
           style={{ color: 'var(--color-ink-muted)' }}
         >
-          이전 대화 기록을 불러오지 못했지만,
-          <br />
-          새로운 질문을 시작하실 수 있습니다.
+          {error}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SessionLoadingState() {
+  return (
+    <div className="flex h-full min-h-[400px] items-center justify-center">
+      <div className="max-w-md text-center">
+        <div
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-accent-glow) 0%, transparent 100%)',
+            border: '1px solid var(--color-ai-border)',
+          }}
+        >
+          <svg
+            className="h-8 w-8 animate-spin"
+            fill="none"
+            viewBox="0 0 24 24"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            <circle
+              className="opacity-20"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path
+              className="opacity-80"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+        </div>
+        <h2
+          className="mb-2 text-xl"
+          style={{ color: 'var(--color-ink)' }}
+        >
+          대화를 불러오는 중
+        </h2>
+        <p
+          className="text-sm"
+          style={{ color: 'var(--color-ink-muted)' }}
+        >
+          이전 대화 내용을 가져오고 있습니다
         </p>
       </div>
     </div>
@@ -449,49 +495,6 @@ function SourcesSection({ sources }: { sources: Message['sources'] }) {
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function HistoryLoadingIndicator() {
-  return (
-    <div className="flex h-full min-h-[400px] items-center justify-center">
-      <div className="max-w-md text-center">
-        {/* 로딩 아이콘 */}
-        <div
-          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
-          style={{
-            background: 'linear-gradient(135deg, var(--color-accent-glow) 0%, transparent 100%)',
-            border: '1px solid var(--color-ai-border)'
-          }}
-        >
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="h-2 w-2 rounded-full animate-pulse-subtle"
-                style={{
-                  background: 'var(--color-accent)',
-                  animationDelay: `${i * 200}ms`
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <h2
-          className="mb-3 text-2xl"
-          style={{ color: 'var(--color-ink)' }}
-        >
-          이전 대화를 불러오는 중...
-        </h2>
-        <p
-          className="text-sm leading-relaxed"
-          style={{ color: 'var(--color-ink-muted)' }}
-        >
-          잠시만 기다려주세요
-        </p>
       </div>
     </div>
   );
