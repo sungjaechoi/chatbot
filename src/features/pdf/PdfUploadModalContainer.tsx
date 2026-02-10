@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { usePdfStore } from '@/shared/stores/pdfStore';
+import { useCreditsStore } from '@/shared/stores/creditsStore';
 import { useChatStore } from '@/shared/stores/chatStore';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { createClient } from '@/shared/lib/supabase/client';
@@ -35,6 +36,7 @@ export function PdfUploadModalContainer({
   } = usePdfStore();
 
   const { clearMessages } = useChatStore();
+  const { fetchCredits } = useCreditsStore();
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -101,6 +103,10 @@ export function PdfUploadModalContainer({
       }
 
       setIsEmbedding(false);
+
+      // 임베딩 완료 후 크레딧 갱신
+      await fetchCredits();
+
       clearMessages();
 
       setSelectedFile(null);

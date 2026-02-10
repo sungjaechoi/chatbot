@@ -71,8 +71,6 @@ export const usePdfStore = create<PdfState>((set, get) => ({
       pdfId: collection.pdfId,
       pdfFileName: collection.fileName,
     });
-    // 채팅 히스토리 로드
-    useChatStore.getState().loadHistory(collection.pdfId);
   },
 
   deleteCollection: async (pdfId: string) => {

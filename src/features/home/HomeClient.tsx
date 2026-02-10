@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { usePdfStore } from "@/shared/stores/pdfStore";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useCredits } from "@/shared/hooks/useCredits";
 import { PdfUploadContainer } from "@/features/pdf/PdfUploadContainer";
 import { PdfUploadModalContainer } from "@/features/pdf/PdfUploadModalContainer";
 import { SpinnerView } from "@/shared/components/SpinnerView";
 import { CollectionListView } from "@/features/pdf/CollectionListView";
+import { CreditBlockOverlay } from "@/shared/components/CreditBlockOverlay";
 import type { CollectionInfo } from "@/shared/types";
 
 type PageState = "loading" | "error" | "empty" | "multiple_select";
@@ -16,6 +18,7 @@ type PageState = "loading" | "error" | "empty" | "multiple_select";
 export default function HomeClient() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { balance, isBlocked, isLoading: isLoadingCredits } = useCredits();
   const {
     isEmbedding,
     isLoadingCollections,
@@ -77,6 +80,11 @@ export default function HomeClient() {
   };
 
   const currentState = getCurrentState();
+
+  // 크레딧 차단 (로딩 완료 후에만 판정)
+  if (!isLoadingCredits && isBlocked) {
+    return <CreditBlockOverlay balance={balance} />;
+  }
 
   // loading
   if (currentState === "loading") {
