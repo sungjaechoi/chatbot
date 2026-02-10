@@ -23,6 +23,10 @@
 │       ↓                                                     │
 │  Orchestrator (초기화)                                       │
 │       ↓                                                     │
+│  Supabase Schema Developer (DB 변경 필요 시)                 │
+│       ↓                                                     │
+│  Orchestrator (결과 수신 & 다음 지시)                          │
+│       ↓                                                     │
 │  Backend Developer                                          │
 │       ↓                                                     │
 │  Orchestrator (결과 수신 & 다음 지시)                          │
@@ -36,6 +40,8 @@
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ PASS → Orchestrator → Done                          │    │
 │  │ FAIL → Orchestrator (blockers 분석)                 │    │
+│  │        → Schema (schema blockers, 해당 시)          │    │
+│  │        → Orchestrator                               │    │
 │  │        → Backend (backend blockers)                 │    │
 │  │        → Orchestrator                               │    │
 │  │        → Frontend (frontend blockers)               │    │
@@ -54,6 +60,7 @@ Orchestrator는 다음 조건에서 단계를 생략할 수 있습니다:
 
 | 생략 가능 단계 | 조건 |
 |----------------|------|
+| Schema | DB 스키마 변경 불필요 (테이블/컬럼/RPC/RLS/인덱스 변경 없음) |
 | Backend | 순수 프론트엔드 작업 (API/데이터 모델 변경 없음) |
 | Frontend | 순수 백엔드 작업 (UI 변경 없음) |
 
@@ -97,6 +104,18 @@ Orchestrator는 다음 조건에서 단계를 생략할 수 있습니다:
   2. should_write === true → 데이터를 템플릿에 맞춰 01-요청분석.md 작성
   3. next_action.agent 에이전트 호출
 
+메인 LLM → Supabase Schema Developer (DB 변경 필요 시)
+        ← 스키마 변경 완료 결과
+
+메인 LLM → Orchestrator (resume, 결과 전달)
+        ← next_action: {agent: "backend-developer", ...}
+
+메인 LLM → Backend Developer (지시 전달)
+        ← 작업 완료 결과
+
+메인 LLM → Orchestrator (resume, 결과 전달)
+        ← next_action: {agent: "frontend-developer", ...}
+
 메인 LLM → Frontend Developer (지시 전달)
         ← 작업 완료 결과
 
@@ -114,22 +133,23 @@ Orchestrator는 다음 조건에서 단계를 생략할 수 있습니다:
   2. should_write === true → 데이터를 템플릿에 맞춰 99-최종결과보고.md 작성
   3. 사용자에게 결과 보고
 
-(FAIL 시 재작업 루프 반복)
+(FAIL 시 재작업 루프 반복: Schema → Backend → Frontend → Reviewer)
 ```
 
 ────────────────────────────────────────────────────────
 
 ## 에이전트 호출 규칙
 
-| 호출 주체    | 호출 가능 대상              |
-| ------------ | --------------------------- |
-| Workflow     | Orchestrator만              |
-| Orchestrator | Backend, Frontend, Reviewer |
-| Backend      | 없음 (결과만 반환)          |
-| Frontend     | 없음 (결과만 반환)          |
-| Reviewer     | 없음 (결과만 반환)          |
+| 호출 주체    | 호출 가능 대상                        |
+| ------------ | ------------------------------------- |
+| Workflow     | Orchestrator만                        |
+| Orchestrator | Schema, Backend, Frontend, Reviewer   |
+| Schema       | 없음 (결과만 반환)                    |
+| Backend      | 없음 (결과만 반환)                    |
+| Frontend     | 없음 (결과만 반환)                    |
+| Reviewer     | 없음 (결과만 반환)                    |
 
-**중요**: Backend, Frontend, Reviewer는 서로를 직접 호출할 수 없습니다.
+**중요**: Schema, Backend, Frontend, Reviewer는 서로를 직접 호출할 수 없습니다.
 모든 전환은 Orchestrator를 통해 이루어집니다.
 
 ────────────────────────────────────────────────────────
@@ -144,26 +164,31 @@ Orchestrator는 다음 조건에서 단계를 생략할 수 있습니다:
 2. Orchestrator가 blockers 수신
        ↓
 3. Orchestrator가 blockers를 area별로 분류
+   - schema blockers → Schema 재작업 지시 (해당 시)
    - backend blockers → Backend 재작업 지시
    - frontend blockers → Frontend 재작업 지시
        ↓
-4. Orchestrator → Backend Developer (backend blockers만)
+4. Orchestrator → Schema Developer (schema blockers만, 해당 시)
        ↓
-5. Backend 완료 → Orchestrator 수신
+5. Schema 완료 → Orchestrator 수신
        ↓
-6. Orchestrator → Frontend Developer (frontend blockers만)
+6. Orchestrator → Backend Developer (backend blockers만)
        ↓
-7. Frontend 완료 → Orchestrator 수신
+7. Backend 완료 → Orchestrator 수신
        ↓
-8. Orchestrator → Reviewer (재검증)
+8. Orchestrator → Frontend Developer (frontend blockers만)
        ↓
-9. PASS → Done / FAIL → 3번으로 (최대 2회)
+9. Frontend 완료 → Orchestrator 수신
+       ↓
+10. Orchestrator → Reviewer (재검증)
+       ↓
+11. PASS → Done / FAIL → 3번으로 (최대 2회)
 ```
 
 ### 금지 패턴
 
-❌ `Reviewer FAIL → Backend 직접 수정 → Frontend 직접 수정`
-✅ `Reviewer FAIL → Orchestrator → Backend → Orchestrator → Frontend → Orchestrator → Reviewer`
+❌ `Reviewer FAIL → Schema 직접 수정 → Backend 직접 수정 → Frontend 직접 수정`
+✅ `Reviewer FAIL → Orchestrator → Schema → Orchestrator → Backend → Orchestrator → Frontend → Orchestrator → Reviewer`
 
 ────────────────────────────────────────────────────────
 
@@ -173,13 +198,23 @@ Orchestrator는 매 단계마다 다음 상태를 유지해야 합니다:
 
 ```json
 {
-  "phase": "backend | frontend | review | fix_backend | fix_frontend | done",
+  "phase": "schema | backend | frontend | review | fix_schema | fix_backend | fix_frontend | done",
   "fix_round": 0,
   "max_fix_round": 2,
   "pending_blockers": {
+    "schema": [],
     "backend": [],
     "frontend": [],
     "integration": []
+  },
+  "schema_state": {
+    "changes_required": false,
+    "tables_affected": [],
+    "rpc_affected": [],
+    "rls_affected": [],
+    "migration_provided": false,
+    "rollback_provided": false,
+    "schema_sql_updated": false
   }
 }
 ```
@@ -242,6 +277,7 @@ Orchestrator의 `request_analysis.data`를 받아 아래 템플릿에 맞춰 작
 
 | 영역 | 작업 내용 |
 |------|-----------|
+| **Schema** | {data.scope.schema} |
 | **Backend** | {data.scope.backend} |
 | **Frontend** | {data.scope.frontend} |
 
@@ -297,6 +333,15 @@ Orchestrator의 `final_report.data`를 받아 아래 템플릿에 맞춰 작성�
 
 ## 생성/수정된 파일
 
+### Schema
+
+{data.modified_files.schema가 빈 배열이면 "해당 없음", 아니면 테이블}
+
+| 파일 경로 | 변경 유형 | 설명 |
+|-----------|-----------|------|
+| {path} | {change_type} | {description} |
+...
+
 ### Backend
 
 {data.modified_files.backend가 빈 배열이면 "해당 없음", 아니면 테이블}
@@ -333,6 +378,50 @@ Orchestrator의 `final_report.data`를 받아 아래 템플릿에 맞춰 작성�
 |--------|----------|-----------|
 | {method} | {endpoint} | {change} |
 ...
+
+## DB 스키마 변경
+
+{data.schema_changes가 없거나 빈 배열이면 "해당 없음", 아니면 아래 형식}
+
+### 변경 요약
+
+| 변경 유형 | 대상 | 설명 | 파괴적 변경 |
+|-----------|------|------|-------------|
+| {type} | {target} | {description} | {destructive ? "⚠️ 예" : "아니오"} |
+...
+
+### 마이그레이션 SQL
+
+{data.schema_changes의 각 항목에 대해}
+
+```sql
+-- {description}
+{migration_sql}
+```
+
+### 롤백 SQL
+
+{data.schema_changes의 각 항목에 대해}
+
+```sql
+-- 롤백: {description}
+{rollback_sql}
+```
+
+### 적용 방법
+
+1. Supabase 대시보드 SQL Editor에서 마이그레이션 SQL을 실행합니다.
+2. 실행 후 아래 확인사항을 점검합니다.
+3. 문제 발생 시 롤백 SQL을 실행합니다.
+
+### 확인사항
+
+- [ ] 마이그레이션 SQL 실행 성공
+- [ ] 새 테이블/컬럼이 정상 생성되었는지 확인
+- [ ] RLS 정책이 올바르게 적용되었는지 확인
+- [ ] RPC 함수가 정상 호출되는지 확인
+- [ ] 기존 데이터에 영향 없는지 확인
+- [ ] `supabase/schema.sql`이 최신 상태로 업데이트되었는지 확인
 
 ## 미해결 사항
 
@@ -392,7 +481,7 @@ Orchestrator의 `final_report.data`를 받아 아래 템플릿에 맞춰 작성�
 | 문서 | 필수 필드 | 누락 시 조치 |
 |------|-----------|--------------|
 | 01-요청분석.md | task_id, analyzed_at, request_summary, scope | Orchestrator 재요청 |
-| 99-최종결과보고.md | task_id, final_status, acceptance_results, modified_files | Orchestrator 재요청 |
+| 99-최종결과보고.md | task_id, final_status, acceptance_results, modified_files, schema_changes | Orchestrator 재요청 |
 
 ────────────────────────────────────────────────────────
 
@@ -463,8 +552,10 @@ if documentation_content.final_report.should_write == true:
 |------|----------------|
 | `non_functional_requirements` | "해당 없음" |
 | `risks` | "없음" |
+| `modified_files.schema` | "해당 없음" |
 | `modified_files.backend` | "해당 없음" |
 | `modified_files.frontend` | "해당 없음" |
+| `schema_changes` | "해당 없음" |
 | `api_changes` | "해당 없음" |
 | `unresolved_issues` | "없음" |
 | `follow_up_tasks` | "없음" |

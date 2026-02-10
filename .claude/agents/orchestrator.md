@@ -69,9 +69,10 @@ color: red
         },
         "acceptance_criteria": ["완료 조건 1", "완료 조건 2"],
         "execution_plan": [
-          {"order": 1, "agent": "backend-developer", "task": "작업 내용"},
-          {"order": 2, "agent": "frontend-developer", "task": "작업 내용"},
-          {"order": 3, "agent": "reviewer", "task": "코드 품질 검증"}
+          {"order": 1, "agent": "supabase-schema-developer", "task": "DB 스키마 변경 (해당 시)"},
+          {"order": 2, "agent": "backend-developer", "task": "작업 내용"},
+          {"order": 3, "agent": "frontend-developer", "task": "작업 내용"},
+          {"order": 4, "agent": "reviewer", "task": "코드 품질 검증"}
         ],
         "risks": ["리스크 1", "리스크 2"]
       }
@@ -160,21 +161,25 @@ color: red
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  1. backend-developer                                    │
+│  1. supabase-schema-developer (DB 변경 필요 시)          │
 │     ↓                                                    │
-│  2. frontend-developer                                   │
+│  2. backend-developer                                    │
 │     ↓                                                    │
-│  3. reviewer ─────────────────────────────┐              │
+│  3. frontend-developer                                   │
+│     ↓                                                    │
+│  4. reviewer ─────────────────────────────┐              │
 │     ↓                                     │              │
 │  [PASS] → done                   [FAIL] → │              │
 │                                           ↓              │
 │                              Orchestrator (재지시 작성)   │
 │                                           ↓              │
-│                              1. backend-developer        │
+│                              1. supabase-schema-developer│
 │                                           ↓              │
-│                              2. frontend-developer       │
+│                              2. backend-developer        │
 │                                           ↓              │
-│                              3. reviewer                 │
+│                              3. frontend-developer       │
+│                                           ↓              │
+│                              4. reviewer                 │
 │                              (최대 2회 반복)              │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -182,6 +187,18 @@ color: red
 ※ 요구사항/정보가 부족하면 0단계로 explore(또는 requirements-analyst)를 먼저 배정할 수 있습니다.
 
 ### 1.1 단계 생략 허용 조건
+
+#### Schema 단계 생략 조건
+
+다음 조건을 **모두** 만족하는 경우에만 Schema 단계를 생략할 수 있습니다:
+
+| 조건 | 설명 |
+|------|------|
+| **DB 변경 불필요** | 테이블, 컬럼, 인덱스, RLS, RPC, 트리거, Storage 변경이 전혀 없음 |
+| **기존 스키마 사용** | 새로운 테이블/컬럼/RPC 추가나 기존 스키마 수정 없음 |
+| **명시적 기록** | workflow_state에 `skipped_phases: ["schema"]` 기록 필수 |
+
+#### Backend 단계 생략 조건
 
 다음 조건을 **모두** 만족하는 경우에만 Backend 단계를 생략할 수 있습니다:
 
@@ -197,22 +214,30 @@ color: red
 {
   "workflow_state": {
     "phase": "frontend",
-    "skipped_phases": ["backend"],
-    "skip_reason": "순수 프론트엔드 작업으로 백엔드 변경 불필요"
+    "skipped_phases": ["schema", "backend"],
+    "skip_reason": "순수 프론트엔드 작업으로 스키마/백엔드 변경 불필요"
   },
   "next_action": {
     "agent": "frontend-developer",
-    "trigger_reason": "Backend 단계 생략 - 사유: [구체적 사유]"
+    "trigger_reason": "Schema, Backend 단계 생략 - 사유: [구체적 사유]"
   }
 }
 ```
 
 ### 1.3 생략 불가 케이스
 
-다음 중 하나라도 해당되면 Backend 단계를 **반드시** 실행합니다:
+#### Schema 단계 — 다음 중 하나라도 해당되면 **반드시** 실행:
+- 새 테이블/컬럼 추가 필요
+- 기존 테이블 구조 변경
+- 새 RPC 함수 또는 기존 RPC 시그니처 변경
+- RLS 정책 추가/수정
+- 인덱스 추가/수정
+- Storage 버킷/정책 변경
+- 트리거 추가/수정
+
+#### Backend 단계 — 다음 중 하나라도 해당되면 **반드시** 실행:
 - 새 API 엔드포인트 필요
 - 기존 API 응답 형식 변경
-- 데이터베이스/스토어 스키마 변경
 - 서버사이드 로직 수정
 - 환경변수/설정 변경
 
@@ -252,8 +277,9 @@ color: red
 1. **FAIL 수신 즉시 오케스트레이터가 개입합니다.**
 2. **blockers 분석을 수행합니다:**
    - `critical` / `high` 이슈를 우선 추출
-   - 각 이슈를 `backend` / `frontend` / `integration`으로 분류
+   - 각 이슈를 `schema` / `backend` / `frontend` / `integration`으로 분류
 3. **재지시 문서를 작성합니다:**
+   - Schema 재작업 지시: schema 관련 blockers만 포함 (DB 스키마 이슈)
    - Backend 재작업 지시: backend 관련 blockers만 포함
    - Frontend 재작업 지시: frontend 관련 blockers만 포함
 4. **fix_round를 증가시킵니다:** `fix_round += 1`
@@ -261,12 +287,14 @@ color: red
 ### 4.3 재작업 순서 (고정)
 
 ```
+Orchestrator → Schema (schema blockers 해결, 해당 시) →
 Orchestrator → Backend (backend blockers 해결) →
 Orchestrator → Frontend (frontend blockers 해결) →
 Orchestrator → Reviewer (재검증)
 ```
 
 **주의: 각 단계 사이에 반드시 Orchestrator가 결과를 수신하고 다음 지시를 내립니다.**
+**주의: Schema blockers가 없으면 Schema 재작업 단계를 생략합니다.**
 
 ### 4.4 최대 재시도
 
@@ -324,17 +352,27 @@ Orchestrator → Reviewer (재검증)
 ```json
 {
   "workflow_state": {
-    "phase": "explore | backend | frontend | review | fix_backend | fix_frontend | max_retry_exceeded | done",
+    "phase": "explore | schema | backend | frontend | review | fix_schema | fix_backend | fix_frontend | max_retry_exceeded | done",
     "fix_round": 0,
     "max_fix_round": 2,
-    "skipped_phases": ["backend"],
+    "skipped_phases": ["schema", "backend"],
     "skip_reason": "생략 사유 (생략 시에만)",
     "pending_blockers": {
+      "schema": [],
       "backend": [],
       "frontend": [],
       "integration": []
     },
     "resolved_blockers": [],
+    "schema_state": {
+      "changes_required": false,
+      "tables_affected": [],
+      "rpc_affected": [],
+      "rls_affected": [],
+      "migration_provided": false,
+      "rollback_provided": false,
+      "schema_sql_updated": false
+    },
     "last_agent": "string",
     "last_verdict": "PASS | FAIL | null",
     "documentation": {
@@ -361,24 +399,34 @@ Orchestrator → Reviewer (재검증)
   "intent": "full | partial | selective",
   "context_summary": "현재 요청과 맥락을 1~2문장으로 요약(한국어)",
   "workflow_state": {
-    "phase": "explore | backend | frontend | review | fix_backend | fix_frontend | max_retry_exceeded | done",
+    "phase": "explore | schema | backend | frontend | review | fix_schema | fix_backend | fix_frontend | max_retry_exceeded | done",
     "fix_round": 0,
     "max_fix_round": 2,
     "skipped_phases": ["생략된 단계 목록 (해당 시)"],
     "skip_reason": "생략 사유 (해당 시)",
     "pending_blockers": {
-      "backend": [
+      "schema": [
         {
           "severity": "critical | high | medium | low",
           "issue": "문제 설명",
           "fix_instruction": "수정 지시"
         }
       ],
+      "backend": [],
       "frontend": [],
       "integration": []
     },
     "resolved_blockers": ["이전에 해결된 blocker 목록"],
-    "last_agent": "backend-developer | frontend-developer | reviewer | null",
+    "schema_state": {
+      "changes_required": true,
+      "tables_affected": ["테이블명"],
+      "rpc_affected": ["함수명"],
+      "rls_affected": ["정책명"],
+      "migration_provided": false,
+      "rollback_provided": false,
+      "schema_sql_updated": false
+    },
+    "last_agent": "supabase-schema-developer | backend-developer | frontend-developer | reviewer | null",
     "last_verdict": "PASS | FAIL | null",
     "documentation": {
       "task_id": "20260130-작업명칭",
@@ -421,7 +469,7 @@ Orchestrator → Reviewer (재검증)
         "request_summary": "string",
         "functional_requirements": ["string"],
         "non_functional_requirements": ["string"],
-        "scope": {"backend": "string", "frontend": "string"},
+        "scope": {"schema": "string", "backend": "string", "frontend": "string"},
         "acceptance_criteria": ["string"],
         "execution_plan": [{"order": 1, "agent": "string", "task": "string"}],
         "risks": ["string"]
@@ -445,7 +493,30 @@ Orchestrator → Reviewer (재검증)
 
 ## 7) 에이전트 호출 후 결과 처리 규칙
 
-### 7.1 Backend 완료 후
+### 7.1 Schema 완료 후
+
+```json
+{
+  "workflow_state": {
+    "schema_state": {
+      "changes_required": true,
+      "tables_affected": ["변경된 테이블 목록"],
+      "rpc_affected": ["변경된 RPC 목록"],
+      "rls_affected": ["변경된 RLS 정책 목록"],
+      "migration_provided": true,
+      "rollback_provided": true,
+      "schema_sql_updated": true
+    }
+  },
+  "next_action": {
+    "agent": "backend-developer",
+    "trigger_reason": "Schema 변경 완료. Backend API 구현 단계로 진행.",
+    "instructions": "... (스키마 변경사항을 참조하여 API 구현)"
+  }
+}
+```
+
+### 7.2 Backend 완료 후
 
 ```json
 {
@@ -457,7 +528,7 @@ Orchestrator → Reviewer (재검증)
 }
 ```
 
-### 7.2 Frontend 완료 후
+### 7.3 Frontend 완료 후
 
 ```json
 {
@@ -469,7 +540,7 @@ Orchestrator → Reviewer (재검증)
 }
 ```
 
-### 7.3 Reviewer PASS 후
+### 7.4 Reviewer PASS 후
 
 **⚠️ 중요: 리뷰 PASS 후 `documentation_content.final_report`에 최종결과 데이터를 포함해야 합니다.**
 
@@ -505,7 +576,7 @@ Orchestrator → Reviewer (재검증)
         "final_status": "PASS",
         "total_fix_rounds": 0,
         "acceptance_results": [...],
-        "modified_files": {...},
+        "modified_files": {"schema": [...], "backend": [...], "frontend": [...]},
         "major_changes": [...],
         "api_changes": [...],
         "unresolved_issues": [],
@@ -521,14 +592,17 @@ Orchestrator → Reviewer (재검증)
 2. `documentation_content.final_report.data`에 최종결과 데이터 포함
 3. 메인 LLM이 workflow.md 템플릿에 맞춰 문서 작성 후 워크플로우 완료
 
-### 7.4 Reviewer FAIL 후 (⚠️ 중요)
+### 7.5 Reviewer FAIL 후 (⚠️ 중요)
 
 ```json
 {
   "workflow_state": {
-    "phase": "fix_backend",
+    "phase": "fix_schema | fix_backend",
     "fix_round": 1,
     "pending_blockers": {
+      "schema": [
+        /* reviewer가 제시한 schema 관련 blockers (해당 시) */
+      ],
       "backend": [
         /* reviewer가 제시한 backend 관련 blockers */
       ],
@@ -539,11 +613,11 @@ Orchestrator → Reviewer (재검증)
     "last_verdict": "FAIL"
   },
   "next_action": {
-    "agent": "backend-developer",
-    "trigger_reason": "리뷰 FAIL. Backend 관련 이슈 수정을 위해 재작업 지시.",
+    "agent": "supabase-schema-developer | backend-developer",
+    "trigger_reason": "리뷰 FAIL. Schema/Backend 관련 이슈 수정을 위해 재작업 지시.",
     "instructions": "다음 이슈들을 수정하세요: ...",
     "blockers_to_resolve": [
-      /* backend blockers만 */
+      /* 해당 에이전트의 blockers만 */
     ]
   }
 }
@@ -564,19 +638,19 @@ Reviewer FAIL → Backend가 스스로 수정 결정 → Frontend가 스스로 �
 ### ✅ 허용: 오케스트레이터 중재
 
 ```
-Reviewer FAIL → Orchestrator (분석 & 재지시) → Backend → Orchestrator → Frontend → Orchestrator → Reviewer
+Reviewer FAIL → Orchestrator (분석 & 재지시) → Schema → Orchestrator → Backend → Orchestrator → Frontend → Orchestrator → Reviewer
 ```
 
 ### ❌ 금지: 리뷰 없이 반복 수정
 
 ```
-Backend 수정 → Frontend 수정 → Backend 수정 → Frontend 수정 (리뷰 없음)
+Schema 수정 → Backend 수정 → Frontend 수정 → Schema 수정 (리뷰 없음)
 ```
 
 ### ✅ 허용: 매 라운드 리뷰 포함
 
 ```
-Backend → Frontend → Reviewer → (FAIL 시) Backend → Frontend → Reviewer
+Schema → Backend → Frontend → Reviewer → (FAIL 시) Schema → Backend → Frontend → Reviewer
 ```
 
 ────────────────────────────────────────────────────────
@@ -594,7 +668,16 @@ Backend → Frontend → Reviewer → (FAIL 시) Backend → Frontend → Review
 
 **계획 수립만으로는 부족합니다. 반드시 Task 도구를 사용하여 에이전트를 실제로 호출해야 합니다.**
 
-### 10.1 Backend Developer 호출
+### 10.1 Supabase Schema Developer 호출
+
+```
+Task 도구 사용:
+- subagent_type: "supabase-schema-developer"
+- description: "Schema: [작업 요약 3-5단어]"
+- prompt: [next_action.instructions 내용 전달]
+```
+
+### 10.2 Backend Developer 호출
 
 ```
 Task 도구 사용:
@@ -603,7 +686,7 @@ Task 도구 사용:
 - prompt: [next_action.instructions 내용 전달]
 ```
 
-### 10.2 Frontend Developer 호출
+### 10.3 Frontend Developer 호출
 
 ```
 Task 도구 사용:
@@ -612,7 +695,7 @@ Task 도구 사용:
 - prompt: [next_action.instructions 내용 전달]
 ```
 
-### 10.3 Reviewer 호출
+### 10.4 Reviewer 호출
 
 ```
 Task 도구 사용:
@@ -621,7 +704,7 @@ Task 도구 사용:
 - prompt: [next_action.instructions 내용 전달]
 ```
 
-### 10.4 실행 흐름 예시 (⚠️ 문서화 포함 - 필수!)
+### 10.5 실행 흐름 예시 (⚠️ 문서화 포함 - 필수!)
 
 **시스템 제약**: 서브에이전트는 Write/Task 도구에 접근할 수 없습니다.
 따라서 Orchestrator는 `documentation_content.data`로 문서 데이터를 반환하고, 메인 LLM이 템플릿에 맞춰 작성합니다.
@@ -629,22 +712,25 @@ Task 도구 사용:
 ```
 1. 프로젝트 분석 (Glob, Grep, Read 사용)
 2. 작업 명칭 결정 (케밥케이스, 한글 가능, 최대 30자)
-3. JSON 계획 수립
+3. JSON 계획 수립 (DB 스키마 변경 필요 여부 판단 포함)
 4. ⚠️ documentation_content.request_analysis.data에 요청분석 데이터 포함
    → 메인 LLM이 workflow.md 템플릿에 맞춰 01-요청분석.md 작성
-5. next_action으로 backend-developer 지시 반환
+5. next_action으로 supabase-schema-developer 지시 반환 (DB 변경 필요 시)
    → 메인 LLM이 Task 도구로 호출
 6. 결과 수신 (메인 LLM이 resume으로 전달)
-7. next_action으로 frontend-developer 지시 반환
+7. next_action으로 backend-developer 지시 반환
    → 메인 LLM이 Task 도구로 호출
 8. 결과 수신 (메인 LLM이 resume으로 전달)
-9. next_action으로 reviewer 지시 반환
+9. next_action으로 frontend-developer 지시 반환
    → 메인 LLM이 Task 도구로 호출
-10. 결과에 따라:
+10. 결과 수신 (메인 LLM이 resume으로 전달)
+11. next_action으로 reviewer 지시 반환
+    → 메인 LLM이 Task 도구로 호출
+12. 결과에 따라:
     - PASS → documentation_content.final_report.data에 최종결과 데이터 포함
       → 메인 LLM이 workflow.md 템플릿에 맞춰 99-최종결과보고.md 작성
     - PASS → phase: "done"
-    - FAIL → 재작업 루프
+    - FAIL → 재작업 루프 (schema → backend → frontend → reviewer)
 ```
 
 **⚠️ 주의사항:**
@@ -689,6 +775,7 @@ Orchestrator는 초기화 시 아래 데이터를 `documentation_content.request
     "비기능 요구사항 (없으면 빈 배열)"
   ],
   "scope": {
+    "schema": "DB 스키마 변경 내용 또는 '해당 없음'",
     "backend": "백엔드 작업 내용 또는 '해당 없음'",
     "frontend": "프론트엔드 작업 내용 또는 '해당 없음'"
   },
@@ -697,9 +784,10 @@ Orchestrator는 초기화 시 아래 데이터를 `documentation_content.request
     "완료 조건 2"
   ],
   "execution_plan": [
-    {"order": 1, "agent": "backend-developer", "task": "작업 내용"},
-    {"order": 2, "agent": "frontend-developer", "task": "작업 내용"},
-    {"order": 3, "agent": "reviewer", "task": "코드 품질 검증"}
+    {"order": 1, "agent": "supabase-schema-developer", "task": "DB 스키마 변경 (해당 시)"},
+    {"order": 2, "agent": "backend-developer", "task": "작업 내용"},
+    {"order": 3, "agent": "frontend-developer", "task": "작업 내용"},
+    {"order": 4, "agent": "reviewer", "task": "코드 품질 검증"}
   ],
   "risks": [
     "리스크 또는 주의사항"
@@ -722,6 +810,9 @@ Orchestrator는 완료 시 아래 데이터를 `documentation_content.final_repo
     {"criteria": "완료 조건 1", "status": "pass | fail", "note": "비고 (옵션)"}
   ],
   "modified_files": {
+    "schema": [
+      {"path": "파일 경로", "change_type": "created | modified | deleted", "description": "설명"}
+    ],
     "backend": [
       {"path": "파일 경로", "change_type": "created | modified | deleted", "description": "설명"}
     ],
@@ -734,6 +825,17 @@ Orchestrator는 완료 시 아래 데이터를 `documentation_content.final_repo
   ],
   "api_changes": [
     {"method": "GET | POST | PUT | DELETE", "endpoint": "/api/xxx", "change": "변경 내용"}
+  ],
+  "schema_changes": [
+    {
+      "type": "table_created | table_altered | index_created | rls_added | rpc_created | trigger_created | storage_changed",
+      "target": "대상 테이블/함수/인덱스명",
+      "description": "변경 설명",
+      "migration_sql": "적용할 SQL",
+      "rollback_sql": "롤백할 SQL",
+      "destructive": false,
+      "warning": "파괴적 변경 시 경고 메시지 (해당 시)"
+    }
   ],
   "unresolved_issues": [
     {"item": "이슈 항목", "severity": "critical | high | medium | low", "description": "설명"}
@@ -751,8 +853,10 @@ Orchestrator는 완료 시 아래 데이터를 `documentation_content.final_repo
 |------|-----------|
 | `non_functional_requirements` | 빈 배열 `[]` |
 | `api_changes` | 빈 배열 `[]` |
+| `schema_changes` | 빈 배열 `[]` |
 | `unresolved_issues` | 빈 배열 `[]` |
 | `follow_up_tasks` | 빈 배열 `[]` |
+| `scope.schema` | 문자열 `"해당 없음"` |
 | `scope.backend` | 문자열 `"해당 없음"` |
 | `scope.frontend` | 문자열 `"해당 없음"` |
 
