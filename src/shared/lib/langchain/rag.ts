@@ -23,6 +23,7 @@ export async function executeRAGPipeline(
   answer: string;
   sources: ChatSource[];
   usage?: UsageInfo;
+  model: string;
 }> {
   try {
     // 1. Retrieval: 관련 문서 검색
@@ -32,6 +33,7 @@ export async function executeRAGPipeline(
       return {
         answer: '죄송합니다. 질문과 관련된 내용을 문서에서 찾을 수 없습니다.',
         sources: [],
+        model: process.env.LLM_MODEL || 'google/gemini-2.5-flash',
       };
     }
 
@@ -43,7 +45,7 @@ export async function executeRAGPipeline(
     const prompt = createRAGPrompt(question, contexts);
 
     // 4. LLM 응답 생성 (대화 히스토리 전달)
-    const { result } = await generateAnswer(prompt, systemPrompt, {}, chatHistory);
+    const { result, model } = await generateAnswer(prompt, systemPrompt, {}, chatHistory);
 
     // 5. 전체 응답 텍스트 수집
     let fullAnswer = '';
@@ -67,8 +69,7 @@ export async function executeRAGPipeline(
         usage = {
           prompt_tokens: usageData.inputTokens,
           completion_tokens: usageData.outputTokens,
-          // AI SDK streamText 응답에 cost 필드가 없으므로 0으로 설정
-          total_cost: 0,
+          total_cost: 0, // 실제 비용은 chat route에서 AI Gateway 전/후 차이로 계산
         };
       }
     } catch (error) {
@@ -80,6 +81,7 @@ export async function executeRAGPipeline(
       answer: fullAnswer,
       sources,
       usage,
+      model,
     };
   } catch (error) {
     throw new Error(

@@ -33,16 +33,18 @@ export async function embedText(text: string): Promise<number[]> {
 /**
  * 여러 텍스트를 임베딩 벡터로 변환 (Vercel AI Gateway 사용)
  * @param texts - 임베딩할 텍스트 배열
- * @returns 임베딩 벡터 배열 (모델에 따라 768 또는 3072차원)
+ * @returns 임베딩 벡터 배열과 usage 정보 (모델에 따라 768 또는 3072차원)
  */
-export async function embedDocuments(texts: string[]): Promise<number[][]> {
+export async function embedDocuments(
+  texts: string[]
+): Promise<{ embeddings: number[][]; usage: { tokens: number } }> {
   try {
     // test.ts와 동일한 방식: 문자열로 모델 지정
-    const { embeddings } = await embedMany({
+    const { embeddings, usage } = await embedMany({
       model: getEmbeddingModel(),
       values: texts,
     });
-    return embeddings;
+    return { embeddings, usage };
   } catch (error) {
     throw new Error(
       `다중 임베딩 생성 실패: ${error instanceof Error ? error.message : String(error)}`,

@@ -3,6 +3,7 @@ import { executeRAGPipeline } from '@/shared/lib/langchain/rag';
 import { createClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getMessagesBySessionId, verifySessionOwner, updateSessionLastMessageAt } from '@/shared/lib/supabase/chat-service';
+import { logCreditUsage, fetchGatewayTotalUsed } from '@/shared/lib/supabase/credit-service';
 import { ChatRequest, ChatResponse, ErrorResponse, ChatHistoryMessage } from '@/shared/types';
 
 export const runtime = 'nodejs';
@@ -92,7 +93,8 @@ export async function POST(request: NextRequest) {
 
     // 6. RAG 파이프라인 실행 (대화 히스토리 포함)
     const topK = parseInt(process.env.TOP_K || '6', 10);
-    const { answer, sources, usage } = await executeRAGPipeline(pdfId, message, topK, chatHistory);
+    const beforeTotalUsed = await fetchGatewayTotalUsed();
+    const { answer, sources, usage, model } = await executeRAGPipeline(pdfId, message, topK, chatHistory);
 
     // 7. 채팅 메시지 DB 저장
     try {
@@ -117,6 +119,33 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // DB 저장 실패해도 응답은 반환
       console.error('메시지 저장 실패:', error);
+    }
+
+    // 8. 크레딧 사용량 기록 (non-blocking)
+    // AI Gateway total_used 전/후 차이로 실제 비용 계산 후 기록
+    if (usage) {
+      (async () => {
+        const afterTotalUsed = await fetchGatewayTotalUsed();
+        const cost = (beforeTotalUsed != null && afterTotalUsed != null)
+          ? Math.max(0, afterTotalUsed - beforeTotalUsed)
+          : 0;
+        await logCreditUsage({
+          userId: user.id,
+          actionType: 'chat',
+          modelName: model,
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalCost: cost,
+          sessionId,
+          pdfId,
+          metadata: {
+            question: message.substring(0, 100),
+            sourcesCount: sources.length,
+          },
+        });
+      })().catch((error) => {
+        console.error('크레딧 사용량 기록 실패:', error);
+      });
     }
 
     const response: ChatResponse = {

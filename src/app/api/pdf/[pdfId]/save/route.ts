@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { loadPDFByPages } from '@/shared/lib/pdf-loader';
-import { embedDocuments } from '@/shared/lib/langchain/embeddings';
+import { embedDocuments, getEmbeddingModel } from '@/shared/lib/langchain/embeddings';
+import { logCreditUsage, fetchGatewayTotalUsed } from '@/shared/lib/supabase/credit-service';
 import { SavePdfResponse, ErrorResponse } from '@/shared/types';
 
 export const runtime = 'nodejs';
@@ -66,7 +67,8 @@ export async function POST(
 
     // 2. 임베딩 생성
     const texts = pages.map((page) => page.text);
-    const embeddings = await embedDocuments(texts);
+    const beforeTotalUsed = await fetchGatewayTotalUsed();
+    const { embeddings, usage } = await embedDocuments(texts);
 
     // 3. pdf_documents 테이블에 저장 (admin 클라이언트 사용 — RLS 우회)
     const adminSupabase = createAdminClient();
@@ -95,6 +97,32 @@ export async function POST(
     if (insertError) {
       throw new Error(`벡터 저장 실패: ${insertError.message}`);
     }
+
+    // 4. 크레딧 사용량 기록 (non-blocking)
+    // AI Gateway total_used 전/후 차이로 실제 비용 계산 후 기록
+    // NOTE: 임베딩 API는 input tokens만 반환하므로 prompt_tokens에 매핑, completion_tokens=0
+    (async () => {
+      const afterTotalUsed = await fetchGatewayTotalUsed();
+      const cost = (beforeTotalUsed != null && afterTotalUsed != null)
+        ? Math.max(0, afterTotalUsed - beforeTotalUsed)
+        : 0;
+      await logCreditUsage({
+        userId: user.id,
+        actionType: 'embedding',
+        modelName: getEmbeddingModel(),
+        promptTokens: usage.tokens,  // 임베딩 API의 input tokens → prompt_tokens에 매핑
+        completionTokens: 0,         // 임베딩 API는 completion tokens 없음
+        totalCost: cost,
+        pdfId,
+        metadata: {
+          fileName,
+          totalPages,
+          textsCount: texts.length,
+        },
+      });
+    })().catch((error) => {
+      console.error('크레딧 사용량 기록 실패:', error);
+    });
 
     const response: SavePdfResponse = {
       pdfId,
