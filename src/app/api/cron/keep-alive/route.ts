@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { verifyCronSecret } from '@/shared/lib/cron-auth';
 
 export const runtime = 'nodejs';
 
@@ -7,8 +8,12 @@ export const runtime = 'nodejs';
  * GET /api/cron/keep-alive
  * Supabase Free 프로젝트 비활성 방지 (5일마다 ping)
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // CRON_SECRET 검증
+    const authError = verifyCronSecret(request);
+    if (authError) return authError;
+
     const supabase = createAdminClient();
 
     // 간단한 쿼리로 Supabase를 활성 상태로 유지

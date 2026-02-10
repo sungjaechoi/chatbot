@@ -117,6 +117,18 @@ export interface CreditsResponse {
 }
 
 /**
+ * Credit Usage Summary 조회 응답
+ */
+export interface CreditUsageSummaryResponse {
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+  chat_count: number;
+  embedding_count: number;
+}
+
+/**
  * Chat History Message (for RAG pipeline)
  */
 export interface ChatHistoryMessage {
@@ -185,4 +197,27 @@ export interface ErrorResponse {
   error: string;
   details?: string;
   code?: string;
+}
+
+/**
+ * Account Deletion Response
+ */
+export interface AccountDeletionResponse {
+  success: boolean;
+  message: string;
+  deletionScheduledAt: string;
+}
+
+/**
+ * Cleanup Users Response (Cron)
+ */
+export interface CleanupUsersResponse {
+  ok: boolean;
+  deletedCount: number;
+  userIds: string[];
+  timestamp: string;
+  partialFailures?: {
+    userId: string;
+    error: string;
+  }[];
 }
