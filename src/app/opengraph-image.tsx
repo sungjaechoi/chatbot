@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export const alt = "Document Chat - PDF 문서와 AI 대화를 시작하세요";
 export const size = {
