@@ -14,6 +14,9 @@ const pretendard = localFont({
 export const metadata: Metadata = {
   title: "Document Chat",
   description: "PDF 문서와 AI 대화를 시작하세요",
+  verification: {
+    google: "e-kf0osr0ssGYaylRzPOcIu4hXUKj31hZ-9mSOs_3lk",
+  },
 };
 
 export default function RootLayout({
