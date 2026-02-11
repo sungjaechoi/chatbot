@@ -6,22 +6,21 @@ import { useShallow } from "zustand/react/shallow";
 import { usePdfStore } from "@/shared/stores/pdfStore";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useCredits } from "@/shared/hooks/useCredits";
-import { PdfUploadContainer } from "@/features/pdf/PdfUploadContainer";
 import { PdfUploadModalContainer } from "@/features/pdf/PdfUploadModalContainer";
 import { SpinnerView } from "@/shared/components/SpinnerView";
 import { CollectionListView } from "@/features/pdf/CollectionListView";
 import { CreditBlockOverlay } from "@/shared/components/CreditBlockOverlay";
 import { AccountDeleteModal } from "@/shared/components/AccountDeleteModal";
+import { NavigationBar } from "@/shared/components/NavigationBar";
 import type { CollectionInfo } from "@/shared/types";
 
 type PageState = "loading" | "error" | "empty" | "multiple_select";
 
 export default function HomeClient() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { balance, isBlocked, isLoading: isLoadingCredits } = useCredits();
   const {
-    isEmbedding,
     isLoadingCollections,
     isDeletingPdf,
     collections,
@@ -30,7 +29,6 @@ export default function HomeClient() {
     deleteCollection,
   } = usePdfStore(
     useShallow((state) => ({
-      isEmbedding: state.isEmbedding,
       isLoadingCollections: state.isLoadingCollections,
       isDeletingPdf: state.isDeletingPdf,
       collections: state.collections,
@@ -42,9 +40,11 @@ export default function HomeClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletingPdfId, setDeletingPdfId] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    fetchCollections();
+    fetchCollections().finally(() => setInitialLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -66,12 +66,15 @@ export default function HomeClient() {
   };
 
   const handleDeleteCollection = async (pdfId: string) => {
+    setDeletingPdfId(pdfId);
     try {
       await deleteCollection(pdfId);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "삭제 중 오류가 발생했습니다.";
       alert(errorMessage);
+    } finally {
+      setDeletingPdfId(null);
     }
   };
 
@@ -109,7 +112,7 @@ export default function HomeClient() {
   };
 
   const getCurrentState = (): PageState => {
-    if (isLoadingCollections) return "loading";
+    if (isLoadingCollections || initialLoading) return "loading";
     if (error) return "error";
     if (collections.length === 0) return "empty";
     return "multiple_select";
@@ -125,28 +128,19 @@ export default function HomeClient() {
   // loading
   if (currentState === "loading") {
     return (
-      <div
-        className="relative flex min-h-screen items-center justify-center"
-        style={{ background: "var(--color-cream)" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
-              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
-            `,
-          }}
-        />
-        <div
-          className="relative rounded-3xl p-10"
-          style={{
-            background: "var(--color-paper)",
-            boxShadow: "var(--shadow-lg)",
-            border: "1px solid var(--color-ai-border)",
-          }}
-        >
-          <SpinnerView message="문서를 불러오는 중..." size="lg" />
+      <div className="min-h-screen" style={{ background: "var(--color-cream)" }}>
+        <NavigationBar />
+        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
+          <div
+            className="relative rounded-2xl p-10"
+            style={{
+              background: "var(--color-paper)",
+              boxShadow: "var(--shadow-lg)",
+              border: "1px solid var(--color-border-light)",
+            }}
+          >
+            <SpinnerView message="문서를 불러오는 중..." size="lg" />
+          </div>
         </div>
       </div>
     );
@@ -155,117 +149,55 @@ export default function HomeClient() {
   // error
   if (currentState === "error") {
     return (
-      <div
-        className="relative flex min-h-screen items-center justify-center p-6"
-        style={{ background: "var(--color-cream)" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
-              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
-            `,
-          }}
-        />
-        <div
-          className="relative w-full max-w-md rounded-3xl p-10 text-center"
-          style={{
-            background: "var(--color-paper)",
-            boxShadow: "var(--shadow-lg)",
-            border: "1px solid var(--color-ai-border)",
-          }}
-        >
+      <div className="min-h-screen" style={{ background: "var(--color-cream)" }}>
+        <NavigationBar />
+        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center p-6">
           <div
-            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            className="relative w-full max-w-md rounded-2xl p-10 text-center"
             style={{
-              background: "var(--color-error-bg)",
-              border: "1px solid rgba(185, 28, 28, 0.2)",
+              background: "var(--color-paper)",
+              boxShadow: "var(--shadow-lg)",
+              border: "1px solid var(--color-border-light)",
             }}
           >
-            <svg
-              className="h-8 w-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              style={{ color: "var(--color-error)" }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-              />
-            </svg>
-          </div>
-          <h2 className="mb-2 text-xl" style={{ color: "var(--color-ink)" }}>
-            불러오기 실패
-          </h2>
-          <p
-            className="mb-8 text-sm"
-            style={{ color: "var(--color-ink-muted)" }}
-          >
-            {error}
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => fetchCollections()}
-              className="focus-ring btn-lift flex-1 rounded-xl px-4 py-3 font-medium transition-all"
+            <div
+              className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
               style={{
-                background: "var(--color-ink)",
-                color: "var(--color-cream)",
+                background: "var(--color-error-bg)",
+                border: "1px solid rgba(185, 28, 28, 0.2)",
               }}
             >
-              다시 시도
-            </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="focus-ring flex-1 rounded-xl px-4 py-3 font-medium transition-colors"
-              style={{
-                background: "var(--color-cream)",
-                color: "var(--color-ink)",
-                border: "1px solid var(--color-ai-border)",
-              }}
-            >
-              새 PDF 업로드
-            </button>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-error)' }}>
+                error
+              </span>
+            </div>
+            <h2 className="mb-2 text-xl font-bold" style={{ color: "var(--color-ink)" }}>
+              불러오기 실패
+            </h2>
+            <p className="mb-8 text-sm" style={{ color: "var(--color-ink-muted)" }}>
+              {error}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => fetchCollections()}
+                className="focus-ring btn-lift flex-1 rounded-xl px-4 py-3 font-medium text-white transition-all"
+                style={{ background: "var(--color-primary)" }}
+              >
+                다시 시도
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="focus-ring flex-1 rounded-xl px-4 py-3 font-medium transition-colors"
+                style={{
+                  background: "var(--color-cream)",
+                  color: "var(--color-ink)",
+                  border: "1px solid var(--color-border-light)",
+                }}
+              >
+                새 PDF 업로드
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // embedding
-  if (isEmbedding) {
-    return (
-      <div
-        className="relative flex min-h-screen items-center justify-center"
-        style={{ background: "var(--color-cream)" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91, 122, 157, 0.08), transparent),
-              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91, 122, 157, 0.05), transparent)
-            `,
-          }}
-        />
-        <div
-          className="relative rounded-3xl p-10 text-center"
-          style={{
-            background: "var(--color-paper)",
-            boxShadow: "var(--shadow-lg)",
-            border: "1px solid var(--color-ai-border)",
-          }}
-        >
-          <SpinnerView message="PDF를 분석하고 있습니다..." size="lg" />
-          <p
-            className="mt-2 text-xs"
-            style={{ color: "var(--color-ink-muted)" }}
-          >
-            문서 내용을 AI가 이해할 수 있도록 처리 중입니다
-          </p>
         </div>
       </div>
     );
@@ -281,8 +213,7 @@ export default function HomeClient() {
           onDeleteCollection={handleDeleteCollection}
           onNewPdf={handleNewPdfFromList}
           isDeletingPdf={isDeletingPdf}
-          user={user}
-          onSignOut={signOut}
+          deletingPdfId={deletingPdfId}
           onDeleteAccount={() => setIsDeleteModalOpen(true)}
         />
 
@@ -302,6 +233,71 @@ export default function HomeClient() {
     );
   }
 
-  // empty
-  return <PdfUploadContainer onUploadComplete={handleUploadComplete} />;
+  // empty — Stitch 빈 상태 디자인
+  return (
+    <div className="min-h-screen" style={{ background: "var(--color-cream)" }}>
+      <NavigationBar
+        onDeleteAccount={() => setIsDeleteModalOpen(true)}
+      />
+
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center p-6">
+        <div className="text-center">
+          {/* 큰 원형 아이콘 */}
+          <div className="relative mx-auto mb-8 flex h-40 w-40 items-center justify-center rounded-full"
+            style={{
+              background: 'linear-gradient(135deg, rgba(22, 67, 156, 0.05) 0%, rgba(91, 122, 157, 0.08) 100%)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '80px', color: 'var(--color-ink-muted)', opacity: 0.2 }}>
+              folder_open
+            </span>
+            {/* + 뱃지 */}
+            <div
+              className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg"
+              style={{ background: 'var(--color-primary)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>add</span>
+            </div>
+          </div>
+
+          <h2 className="mb-3 text-3xl font-bold" style={{ color: 'var(--color-ink)' }}>
+            업로드된 문서가 없습니다
+          </h2>
+          <p className="mb-8 text-sm leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>
+            PDF 문서를 업로드하여<br />AI와 대화를 시작해보세요.
+          </p>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="focus-ring btn-lift mx-auto inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-medium text-white shadow-xl transition-all"
+            style={{ background: 'var(--color-primary)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.background = 'var(--color-primary-hover)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.background = 'var(--color-primary)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+            PDF 업로드
+          </button>
+        </div>
+      </div>
+
+      <PdfUploadModalContainer
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onUploadComplete={handleUploadComplete}
+      />
+
+      <AccountDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={isDeletingAccount}
+      />
+    </div>
+  );
 }

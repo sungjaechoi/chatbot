@@ -1,45 +1,45 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export const metadata = {
-  title: '개인정보처리방침 - Document Chat',
-  description: 'Document Chat 서비스의 개인정보처리방침',
+  title: "개인정보처리방침 - Document Chat",
+  description: "Document Chat 서비스의 개인정보처리방침",
 };
 
 export default function PrivacyPolicyPage() {
   return (
     <div
       className="min-h-screen px-6 py-16"
-      style={{ background: 'var(--color-cream)' }}
+      style={{ background: "var(--color-cream)" }}
     >
       <article
         className="mx-auto max-w-2xl rounded-3xl p-10"
         style={{
-          background: 'var(--color-paper)',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--color-ai-border)',
+          background: "var(--color-paper)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid var(--color-ai-border)",
         }}
       >
         <h1
           className="mb-2 text-3xl tracking-tight"
-          style={{ color: 'var(--color-ink)' }}
+          style={{ color: "var(--color-ink)" }}
         >
           개인정보처리방침
         </h1>
         <p
           className="mb-10 text-sm"
-          style={{ color: 'var(--color-ink-muted)' }}
+          style={{ color: "var(--color-ink-muted)" }}
         >
           시행일: 2026년 2월 10일 | 최종 수정일: 2026년 2월 10일
         </p>
 
         <div
           className="space-y-8 text-sm leading-relaxed"
-          style={{ color: 'var(--color-ink-light)' }}
+          style={{ color: "var(--color-ink-light)" }}
         >
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               1. 수집하는 개인정보
             </h2>
@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               2. 개인정보 수집 및 이용 목적
             </h2>
@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               3. 데이터 저장 및 보관
             </h2>
@@ -119,7 +119,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               4. 데이터 공유 및 제3자 제공
             </h2>
@@ -147,26 +147,26 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               5. Google API 데이터 관련 정책
             </h2>
             <div
               className="rounded-xl p-4"
               style={{
-                background: 'var(--color-ai-bg)',
-                border: '1px solid var(--color-ai-border)',
+                background: "var(--color-ai-bg)",
+                border: "1px solid var(--color-ai-border)",
               }}
             >
               <p>
-                본 서비스의 Google API를 통해 수신한 사용자 데이터의 사용 및 다른
-                앱으로의 전송은{' '}
+                본 서비스의 Google API를 통해 수신한 사용자 데이터의 사용 및
+                다른 앱으로의 전송은{" "}
                 <a
                   href="https://developers.google.com/terms/api-services-user-data-policy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline"
-                  style={{ color: 'var(--color-accent)' }}
+                  style={{ color: "var(--color-accent)" }}
                 >
                   Google API Services User Data Policy
                 </a>
@@ -182,16 +182,14 @@ export default function PrivacyPolicyPage() {
                 사용자 동의 없이 Google 데이터를 제3자에게 전달하지 않습니다.
               </li>
               <li>Google 사용자 데이터를 판매하지 않습니다.</li>
-              <li>
-                Google 데이터를 광고 타겟팅 목적으로 사용하지 않습니다.
-              </li>
+              <li>Google 데이터를 광고 타겟팅 목적으로 사용하지 않습니다.</li>
             </ul>
           </section>
 
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               6. 사용자 권리
             </h2>
@@ -206,8 +204,9 @@ export default function PrivacyPolicyPage() {
                 있습니다.
               </li>
               <li>
-                <strong>계정 삭제:</strong> 계정 삭제 및 모든 관련 데이터(업로드한
-                PDF, 대화 기록 등)의 완전 삭제를 요청할 수 있습니다.
+                <strong>계정 삭제:</strong> 계정 삭제 및 모든 관련
+                데이터(업로드한 PDF, 대화 기록 등)의 완전 삭제를 요청할 수
+                있습니다.
               </li>
               <li>
                 <strong>데이터 이동:</strong> 저장된 데이터의 사본을 요청할 수
@@ -219,7 +218,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               7. 연락처
             </h2>
@@ -229,12 +228,12 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                이메일:{' '}
+                이메일:{" "}
                 <span
                   className="font-medium"
-                  style={{ color: 'var(--color-accent)' }}
+                  style={{ color: "var(--color-accent)" }}
                 >
-                  [연락처 이메일을 입력하세요]
+                  your-email@example.com
                 </span>
               </li>
             </ul>
@@ -243,14 +242,14 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2
               className="mb-3 text-lg font-semibold"
-              style={{ color: 'var(--color-ink)' }}
+              style={{ color: "var(--color-ink)" }}
             >
               8. 개인정보처리방침 변경
             </h2>
             <p>
               본 개인정보처리방침이 변경되는 경우, 변경 사항을 서비스 내 공지
-              또는 이메일을 통해 사전 고지합니다. 변경된 방침은 공지된 시행일부터
-              효력이 발생합니다.
+              또는 이메일을 통해 사전 고지합니다. 변경된 방침은 공지된
+              시행일부터 효력이 발생합니다.
             </p>
           </section>
         </div>
@@ -259,14 +258,14 @@ export default function PrivacyPolicyPage() {
           <Link
             href="/terms"
             className="underline"
-            style={{ color: 'var(--color-accent)' }}
+            style={{ color: "var(--color-accent)" }}
           >
             서비스 이용약관
           </Link>
           <Link
             href="/login"
             className="underline"
-            style={{ color: 'var(--color-accent)' }}
+            style={{ color: "var(--color-accent)" }}
           >
             로그인으로 돌아가기
           </Link>
