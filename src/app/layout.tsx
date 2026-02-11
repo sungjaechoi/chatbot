@@ -23,11 +23,20 @@ export const metadata: Metadata = {
     siteName: "Document Chat",
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Document Chat",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Document Chat",
     description: "PDF 문서와 AI 대화를 시작하세요",
+    images: ["/og-image.png"],
   },
 };
 
