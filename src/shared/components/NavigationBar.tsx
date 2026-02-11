@@ -25,7 +25,7 @@ export function NavigationBar({ onDeleteAccount }: NavigationBarProps) {
             className="flex h-10 w-10 items-center justify-center rounded-xl"
             style={{ background: 'var(--color-primary)' }}
           >
-            <span className="material-symbols-outlined text-white" style={{ fontSize: '22px' }}>
+            <span className="material-symbols-outlined text-white sr-only" style={{ fontSize: '22px' }} aria-hidden="true">
               auto_awesome
             </span>
           </div>
