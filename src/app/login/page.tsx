@@ -46,7 +46,7 @@ export default function LoginPage() {
             boxShadow: '0 8px 24px rgba(22, 67, 156, 0.2)',
           }}
         >
-          <span className="material-symbols-outlined text-white sr-only" style={{ fontSize: '32px' }} aria-hidden="true">
+          <span className="material-symbols-outlined text-white" style={{ fontSize: '32px' }}>
             auto_awesome
           </span>
         </div>
