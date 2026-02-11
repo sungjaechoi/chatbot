@@ -12,8 +12,8 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Chatbot",
-  description: "AI Chatbot Application",
+  title: "Document Chat",
+  description: "PDF 문서와 AI 대화를 시작하세요",
 };
 
 export default function RootLayout({
@@ -24,6 +24,11 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* Google Material Icons & Symbols */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet" />
         {/* FOUC(Flash of Unstyled Content) 방지: 페이지 로드 즉시 테마 적용 */}
         <script
           dangerouslySetInnerHTML={{
