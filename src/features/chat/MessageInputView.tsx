@@ -39,7 +39,7 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
     <div
       className="relative z-10 border-t"
       style={{
-        borderColor: 'var(--color-ai-border)',
+        borderColor: 'var(--color-border-light)',
         background: 'var(--color-cream)'
       }}
     >
@@ -53,11 +53,11 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
 
       <div className="mx-auto max-w-4xl px-6 py-5">
         <div
-          className="relative flex items-end gap-3 rounded-2xl p-2 transition-shadow duration-200"
+          className="relative flex items-end gap-3 rounded-xl p-2 transition-shadow duration-200"
           style={{
             background: 'var(--color-paper)',
             boxShadow: 'var(--shadow-lg)',
-            border: '1px solid var(--color-ai-border)'
+            border: '1px solid var(--color-border-light)'
           }}
         >
           {/* 텍스트 입력 영역 */}
@@ -81,17 +81,17 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
             }}
           />
 
-          {/* 전송 버튼 */}
+          {/* 전송 버튼 — Stitch: 네이비 원형 */}
           <button
             onClick={handleSubmit}
             disabled={!input.trim() || isDisabled}
-            className="focus-ring btn-lift flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            className="focus-ring btn-lift flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-40"
             style={{
               background: input.trim() && !isDisabled
-                ? 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-soft) 100%)'
+                ? 'var(--color-primary)'
                 : 'var(--color-cream-dark)',
               boxShadow: input.trim() && !isDisabled
-                ? '0 4px 12px var(--color-accent-glow)'
+                ? '0 4px 12px rgba(22, 67, 156, 0.2)'
                 : 'none'
             }}
             aria-label="전송"
@@ -118,19 +118,15 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
                 />
               </svg>
             ) : (
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke={input.trim() ? 'white' : 'var(--color-ink-muted)'}
-                viewBox="0 0 24 24"
-                strokeWidth={2}
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '20px',
+                  color: input.trim() ? 'white' : 'var(--color-ink-muted)',
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                />
-              </svg>
+                send
+              </span>
             )}
           </button>
         </div>
@@ -144,7 +140,7 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
             className="rounded px-1.5 py-0.5 text-[10px] font-medium"
             style={{
               background: 'var(--color-cream-dark)',
-              border: '1px solid var(--color-ai-border)'
+              border: '1px solid var(--color-border-light)'
             }}
           >
             Enter
@@ -154,7 +150,7 @@ export function MessageInputView({ isLoading, onSend }: MessageInputViewProps) {
             className="rounded px-1.5 py-0.5 text-[10px] font-medium"
             style={{
               background: 'var(--color-cream-dark)',
-              border: '1px solid var(--color-ai-border)'
+              border: '1px solid var(--color-border-light)'
             }}
           >
             Shift + Enter

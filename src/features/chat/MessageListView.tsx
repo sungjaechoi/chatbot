@@ -56,8 +56,6 @@ export function MessageListView({ messages, isLoading, error }: MessageListViewP
   useEffect(() => {
     if (messages.length > 0) {
       const diff = messages.length - prevMessagesLength.current;
-      // 메시지가 3개 이상 추가되면 instant scroll (세션 로드)
-      // 1-2개 추가는 smooth scroll (일반 채팅)
       const behavior = diff >= 3 ? 'instant' : 'smooth';
       messagesEndRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior });
       prevMessagesLength.current = messages.length;
@@ -96,16 +94,14 @@ export function MessageListView({ messages, isLoading, error }: MessageListViewP
 function ErrorBanner({ error }: { error: string }) {
   return (
     <div
-      className="mb-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+      className="mb-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm"
       style={{
         background: 'var(--color-error-bg)',
         color: 'var(--color-error)',
         border: '1px solid rgba(185, 28, 28, 0.2)',
       }}
     >
-      <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-      </svg>
+      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>
       <span>{error}</span>
     </div>
   );
@@ -115,40 +111,21 @@ function ErrorState({ error }: { error: string }) {
   return (
     <div className="flex h-full min-h-[400px] items-center justify-center">
       <div className="max-w-md text-center">
-        {/* 에러 아이콘 */}
         <div
           className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
           style={{
             background: 'linear-gradient(135deg, var(--color-error-bg) 0%, transparent 100%)',
-            border: '1px solid var(--color-ai-border)'
+            border: '1px solid var(--color-border-light)'
           }}
         >
-          <svg
-            className="h-10 w-10"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            style={{ color: 'var(--color-error)' }}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-            />
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'var(--color-error)' }}>
+            error
+          </span>
         </div>
-
-        <h2
-          className="mb-3 text-2xl"
-          style={{ color: 'var(--color-ink)' }}
-        >
+        <h2 className="mb-3 text-2xl font-bold" style={{ color: 'var(--color-ink)' }}>
           오류가 발생했습니다
         </h2>
-        <p
-          className="text-sm leading-relaxed"
-          style={{ color: 'var(--color-ink-muted)' }}
-        >
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>
           {error}
         </p>
       </div>
@@ -163,41 +140,24 @@ function SessionLoadingState() {
         <div
           className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
           style={{
-            background: 'linear-gradient(135deg, var(--color-accent-glow) 0%, transparent 100%)',
-            border: '1px solid var(--color-ai-border)',
+            background: 'linear-gradient(135deg, rgba(22, 67, 156, 0.05) 0%, transparent 100%)',
+            border: '1px solid var(--color-border-light)',
           }}
         >
           <svg
             className="h-8 w-8 animate-spin"
             fill="none"
             viewBox="0 0 24 24"
-            style={{ color: 'var(--color-accent)' }}
+            style={{ color: 'var(--color-primary)' }}
           >
-            <circle
-              className="opacity-20"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              className="opacity-80"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
+            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         </div>
-        <h2
-          className="mb-2 text-xl"
-          style={{ color: 'var(--color-ink)' }}
-        >
+        <h2 className="mb-2 text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
           대화를 불러오는 중
         </h2>
-        <p
-          className="text-sm"
-          style={{ color: 'var(--color-ink-muted)' }}
-        >
+        <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
           이전 대화 내용을 가져오고 있습니다
         </p>
       </div>
@@ -213,36 +173,19 @@ function EmptyState() {
         <div
           className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl"
           style={{
-            background: 'linear-gradient(135deg, var(--color-accent-glow) 0%, transparent 100%)',
-            border: '1px solid var(--color-ai-border)'
+            background: 'linear-gradient(135deg, rgba(22, 67, 156, 0.05) 0%, transparent 100%)',
+            border: '1px solid var(--color-border-light)'
           }}
         >
-          <svg
-            className="h-10 w-10"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={1}
-            style={{ color: 'var(--color-accent)' }}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
-            />
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'var(--color-primary)', opacity: 0.6 }}>
+            chat_bubble
+          </span>
         </div>
 
-        <h2
-          className="mb-3 text-2xl"
-          style={{ color: 'var(--color-ink)' }}
-        >
+        <h2 className="mb-3 text-2xl font-bold" style={{ color: 'var(--color-ink)' }}>
           문서에 대해 질문해보세요
         </h2>
-        <p
-          className="text-sm leading-relaxed"
-          style={{ color: 'var(--color-ink-muted)' }}
-        >
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>
           업로드한 PDF 문서의 내용을 기반으로 답변을 드립니다.
           <br />
           궁금한 내용을 자유롭게 질문해주세요.
@@ -289,15 +232,15 @@ function MessageBubble({ message, index }: { message: Message; index: number }) 
             boxShadow: isUser
               ? 'var(--shadow-md)'
               : 'var(--shadow-float)',
-            border: isUser ? 'none' : '1px solid var(--color-ai-border)'
+            border: isUser ? 'none' : '1px solid var(--color-border-light)'
           }}
         >
-          {/* AI 메시지 좌측 악센트 바 */}
+          {/* AI 메시지 좌측 악센트 바 — Stitch primary 색상 */}
           {!isUser && !isError && (
             <div
               className="absolute left-0 top-0 h-full w-1"
               style={{
-                background: 'linear-gradient(to bottom, var(--color-accent), var(--color-accent-soft))'
+                background: 'linear-gradient(to bottom, var(--color-primary), var(--color-accent))'
               }}
             />
           )}
@@ -305,13 +248,7 @@ function MessageBubble({ message, index }: { message: Message; index: number }) 
           {/* 에러 헤더 */}
           {isError && (
             <div className="mb-2 flex items-center gap-2">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
               <span className="text-xs font-medium">오류가 발생했습니다</span>
             </div>
           )}
@@ -374,10 +311,10 @@ function SourcesSection({ sources }: { sources: Message['sources'] }) {
 
   return (
     <div
-      className="mt-2 rounded-2xl overflow-hidden"
+      className="mt-2 rounded-xl overflow-hidden"
       style={{
         background: 'var(--color-cream-dark)',
-        border: '1px solid var(--color-ai-border)'
+        border: '1px solid var(--color-border-light)'
       }}
     >
       {/* 아코디언 헤더 */}
@@ -391,58 +328,34 @@ function SourcesSection({ sources }: { sources: Message['sources'] }) {
         }}
         aria-expanded={isExpanded}
         className="focus-ring w-full px-5 py-4 flex items-center gap-2 hover:bg-opacity-80 transition-colors"
-        style={{
-          cursor: 'pointer',
-          transition: 'var(--transition-fast)'
-        }}
+        style={{ cursor: 'pointer', transition: 'var(--transition-fast)' }}
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          style={{ color: 'var(--color-accent)' }}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-          />
-        </svg>
-        <span
-          className="text-xs font-medium tracking-wide"
-          style={{ color: 'var(--color-ink)' }}
-        >
+        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>
+          description
+        </span>
+        <span className="text-xs font-medium tracking-wide" style={{ color: 'var(--color-ink)' }}>
           참고 출처
         </span>
         <span
           className="ml-1 flex h-5 items-center justify-center rounded-full px-2 text-[10px] font-semibold"
           style={{
-            background: 'var(--color-accent-glow)',
-            color: 'var(--color-accent)'
+            background: 'rgba(22, 67, 156, 0.1)',
+            color: 'var(--color-primary)'
           }}
         >
           {sources.length}
         </span>
-        <svg
-          className="ml-auto h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
+        <span
+          className="material-symbols-outlined ml-auto"
           style={{
+            fontSize: '16px',
             color: 'var(--color-ink-muted)',
             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'var(--transition-base)'
+            transition: 'var(--transition-base)',
           }}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+          expand_more
+        </span>
       </button>
 
       {/* 아코디언 콘텐츠 */}
@@ -458,30 +371,24 @@ function SourcesSection({ sources }: { sources: Message['sources'] }) {
           {sources.map((source, idx) => (
             <div
               key={idx}
-              className="rounded-xl p-3"
+              className="rounded-lg p-3"
               style={{ background: 'var(--color-paper)' }}
             >
               <div className="flex items-center gap-2">
                 <span
                   className="flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold"
                   style={{
-                    background: 'var(--color-accent-glow)',
-                    color: 'var(--color-accent)'
+                    background: 'rgba(22, 67, 156, 0.1)',
+                    color: 'var(--color-primary)'
                   }}
                 >
                   {source.pageNumber}
                 </span>
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: 'var(--color-ink)' }}
-                >
+                <span className="text-xs font-medium" style={{ color: 'var(--color-ink)' }}>
                   {source.fileName}
                 </span>
                 {source.score !== undefined && (
-                  <span
-                    className="ml-auto text-[10px]"
-                    style={{ color: 'var(--color-ink-muted)' }}
-                  >
+                  <span className="ml-auto text-[10px]" style={{ color: 'var(--color-ink-muted)' }}>
                     {(source.score * 100).toFixed(0)}% 관련
                   </span>
                 )}
@@ -507,15 +414,15 @@ function LoadingIndicator() {
         className="flex items-center gap-3 rounded-2xl px-5 py-4"
         style={{
           background: 'var(--color-paper)',
-          border: '1px solid var(--color-ai-border)',
+          border: '1px solid var(--color-border-light)',
           boxShadow: 'var(--shadow-float)'
         }}
       >
-        {/* 골드 악센트 바 */}
+        {/* 네이비 악센트 바 */}
         <div
           className="h-8 w-1 rounded-full"
           style={{
-            background: 'linear-gradient(to bottom, var(--color-accent), var(--color-accent-soft))'
+            background: 'linear-gradient(to bottom, var(--color-primary), var(--color-accent))'
           }}
         />
         <div className="flex items-center gap-2">
@@ -525,16 +432,13 @@ function LoadingIndicator() {
                 key={i}
                 className="h-2 w-2 rounded-full animate-pulse-subtle"
                 style={{
-                  background: 'var(--color-accent)',
+                  background: 'var(--color-primary)',
                   animationDelay: `${i * 200}ms`
                 }}
               />
             ))}
           </div>
-          <span
-            className="text-sm"
-            style={{ color: 'var(--color-ink-muted)' }}
-          >
+          <span className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
             답변을 생성하고 있습니다
           </span>
         </div>
