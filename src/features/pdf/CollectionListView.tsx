@@ -22,7 +22,7 @@ export function CollectionListView({
   onDeleteAccount,
 }: CollectionListViewProps) {
 
-  const handleDelete = (pdfId: string, _fileName: string) => {
+  const handleDelete = (pdfId: string) => {
     onDeleteCollection(pdfId);
   };
 
