@@ -15,18 +15,70 @@ PDF 문서를 업로드하고 AI와 대화하는 RAG(Retrieval-Augmented Generat
 
 ## 기술 스택
 
-| 영역 | 기술 |
-|------|------|
-| **프레임워크** | Next.js 15 (App Router), React 19 |
-| **인증** | Supabase Auth (Google OAuth) |
-| **데이터베이스** | Supabase PostgreSQL + pgvector |
-| **파일 저장소** | Supabase Storage |
-| **AI / LLM** | Vercel AI SDK, LangChain |
-| **임베딩** | Google text-embedding-004 (3072차원) |
-| **LLM 모델** | Google Gemini 2.5 Flash |
-| **상태 관리** | Zustand |
-| **스타일링** | Tailwind CSS v4, CSS Variables, Material Symbols |
-| **배포** | Vercel |
+| 영역             | 기술                                             |
+| ---------------- | ------------------------------------------------ |
+| **프레임워크**   | Next.js 15 (App Router), React 19                |
+| **인증**         | Supabase Auth (Google OAuth)                     |
+| **데이터베이스** | Supabase PostgreSQL + pgvector                   |
+| **파일 저장소**  | Supabase Storage                                 |
+| **AI / LLM**     | Vercel AI SDK, LangChain                         |
+| **임베딩**       | Google text-embedding-004 (3072차원)             |
+| **LLM 모델**     | Google Gemini 2.5 Flash                          |
+| **상태 관리**    | Zustand                                          |
+| **스타일링**     | Tailwind CSS v4, CSS Variables, Material Symbols |
+| **배포**         | Vercel                                           |
+
+## Claude Code 활용
+
+이 프로젝트는 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)의 커스텀 에이전트 시스템을 활용하여 개발되었습니다. `.claude/` 디렉토리에 5개의 전문 에이전트와 2개의 커스텀 커맨드를 정의하여, 단일 명령으로 DB 스키마 설계부터 백엔드·프론트엔드 구현, 코드 리뷰까지 자동화된 개발 파이프라인을 구성했습니다.
+
+### 에이전트 파이프라인
+
+`/workflow` 커맨드를 실행하면 Orchestrator가 아래 순서로 전문 에이전트를 호출합니다:
+
+```
+사용자 요청
+    ↓
+Orchestrator ─── 요청 분석 & 작업 계획 수립
+    ↓
+Schema Developer ─── DB 테이블/RLS/RPC 설계 (필요 시)
+    ↓
+Backend Developer ─── API 라우트 & RAG 파이프라인 구현
+    ↓
+Frontend Developer ─── UI 컴포넌트 & 상태 관리 구현
+    ↓
+Reviewer ─── 보안·품질·통합 검증 (PASS/FAIL)
+    ↓
+  FAIL → Orchestrator가 blocker 분류 후 재작업 지시 (최대 2회)
+  PASS → 완료 보고서 자동 생성
+```
+
+### 에이전트 구성
+
+| 에이전트               | 역할                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------- |
+| **Orchestrator**       | 파이프라인 지휘자. 작업 분석, 에이전트 호출 순서 결정, 상태 추적, 리뷰 실패 시 재작업 루프 관리 |
+| **Schema Developer**   | Supabase DB 스키마 변경 전문. 마이그레이션/롤백 SQL, RLS 정책, pgvector 인덱스 설계             |
+| **Backend Developer**  | Next.js API 라우트 구현. Supabase 연동, RAG 파이프라인, Vercel 배포 제약 고려                   |
+| **Frontend Developer** | React UI 구현. Container/View 패턴, Zustand 상태 관리, 접근성·반응형 처리                      |
+| **Reviewer**           | 코드 품질 검증. 보안·타입·성능·UX를 PASS/FAIL로 판정하고, 실패 시 구체적 수정 지시 제공        |
+
+### 커스텀 커맨드
+
+| 커맨드             | 용도                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `/workflow`        | 표준 개발 파이프라인 실행. 사용자 프롬프트를 Orchestrator에 전달하여 전체 흐름 시작             |
+| `/frontend-design` | 프로덕션 수준의 고품질 UI 생성. 디자인 컨셉·톤·차별화 포인트를 정의한 뒤 코드 생성             |
+
+### 작업 기록
+
+모든 워크플로우 실행 결과는 `doc/workflow/` 디렉토리에 자동 기록됩니다:
+
+```
+doc/workflow/{YYYYMMDD}-{작업명}/
+├── 01-요청분석.md      # 요구사항, 작업 범위, 완료 조건, 실행 계획
+└── 99-최종결과보고.md   # 변경 파일, API 변경, 스키마 변경, 미해결 사항
+```
 
 ## 아키텍처
 
@@ -120,13 +172,13 @@ src/
 
 ## DB 스키마
 
-| 테이블 | 설명 |
-|--------|------|
-| `profiles` | 사용자 프로필 (OAuth 연동, 크레딧 누적) |
-| `pdf_documents` | PDF 벡터 데이터 (content, embedding, page_number) |
-| `chat_sessions` | 채팅 세션 (PDF당 다중 세션) |
-| `chat_messages` | 메시지 (role, content, sources, usage) |
-| `credit_usage_logs` | 토큰 사용 로그 (모델별 비용 추적) |
+| 테이블              | 설명                                              |
+| ------------------- | ------------------------------------------------- |
+| `profiles`          | 사용자 프로필 (OAuth 연동, 크레딧 누적)           |
+| `pdf_documents`     | PDF 벡터 데이터 (content, embedding, page_number) |
+| `chat_sessions`     | 채팅 세션 (PDF당 다중 세션)                       |
+| `chat_messages`     | 메시지 (role, content, sources, usage)            |
+| `credit_usage_logs` | 토큰 사용 로그 (모델별 비용 추적)                 |
 
 ### RPC 함수
 
@@ -187,10 +239,6 @@ npm run dev
 npm run build
 npm start
 ```
-
-## 배포
-
-Vercel에 배포하는 것을 권장합니다. 환경 변수를 Vercel 프로젝트 설정에 추가한 뒤 `main` 브랜치에 푸시하면 자동 배포됩니다.
 
 ### Vercel Cron Jobs
 
