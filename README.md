@@ -1,36 +1,200 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Document Chat
 
-## Getting Started
+PDF 문서를 업로드하고 AI와 대화하는 RAG(Retrieval-Augmented Generation) 챗봇입니다.
 
-First, run the development server:
+업로드한 PDF를 벡터 임베딩으로 변환하여 저장하고, 질문 시 관련 문맥을 검색해 정확한 답변을 생성합니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 주요 기능
+
+- **PDF 기반 RAG 대화** — PDF 업로드 → 텍스트 추출 → 임베딩 → 벡터 유사도 검색 → LLM 답변 (출처 페이지 포함)
+- **다중 세션** — 하나의 PDF에서 주제별로 여러 대화 세션을 생성·관리
+- **크레딧 시스템** — 사용자별 API 사용량을 토큰 단위로 추적하고 잔액 표시
+- **Google OAuth 인증** — Supabase Auth 기반 로그인, 미들웨어 라우트 보호
+- **테마 전환** — Light / Dark / System 3단 토글
+- **회원 탈퇴** — 소프트 딜리트 후 30일 유예, 재가입 시 자동 복구
+
+## 기술 스택
+
+| 영역 | 기술 |
+|------|------|
+| **프레임워크** | Next.js 15 (App Router), React 19 |
+| **인증** | Supabase Auth (Google OAuth) |
+| **데이터베이스** | Supabase PostgreSQL + pgvector |
+| **파일 저장소** | Supabase Storage |
+| **AI / LLM** | Vercel AI SDK, LangChain |
+| **임베딩** | Google text-embedding-004 (3072차원) |
+| **LLM 모델** | Google Gemini 2.5 Flash |
+| **상태 관리** | Zustand |
+| **스타일링** | Tailwind CSS v4, CSS Variables, Material Symbols |
+| **배포** | Vercel |
+
+## 아키텍처
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Browser   │────▶│  Next.js App     │────▶│  Supabase       │
+│             │     │  (API Routes)    │     │  - PostgreSQL   │
+│  React 19   │     │                  │     │  - pgvector     │
+│  Zustand    │     │  Vercel AI SDK   │     │  - Storage      │
+│  Tailwind   │     │  LangChain       │     │  - Auth         │
+└─────────────┘     └──────────────────┘     └─────────────────┘
+                            │
+                            ▼
+                    ┌──────────────────┐
+                    │  AI Gateway      │
+                    │  (Google Gemini) │
+                    └──────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 프로젝트 구조
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                          # Next.js App Router
+│   ├── api/                      # API 라우트
+│   │   ├── chat/                 #   채팅 (스트리밍 응답, 세션 CRUD)
+│   │   ├── pdf/                  #   PDF 업로드·임베딩·삭제
+│   │   ├── collections/          #   문서 목록 조회
+│   │   ├── credits/              #   크레딧 잔액·사용량
+│   │   ├── account/              #   회원 탈퇴·재활성화
+│   │   └── cron/                 #   크론잡 (유저 정리, keep-alive)
+│   ├── chat/[pdfId]/             # 채팅 페이지
+│   ├── login/                    # 로그인 페이지
+│   └── auth/callback/            # OAuth 콜백
+│
+├── features/                     # 기능별 모듈 (Container/View 패턴)
+│   ├── chat/                     #   채팅 레이아웃, 사이드바, 메시지
+│   ├── home/                     #   홈 대시보드
+│   └── pdf/                      #   PDF 업로드, 문서 목록
+│
+├── shared/                       # 공통 모듈
+│   ├── components/               #   UI 컴포넌트
+│   ├── hooks/                    #   useAuth, useCredits
+│   ├── lib/
+│   │   ├── langchain/            #   RAG 파이프라인 (임베딩, 검색, 생성)
+│   │   └── supabase/             #   클라이언트 (admin / server / browser)
+│   ├── stores/                   #   Zustand 스토어
+│   └── types/
+│
+└── middleware.ts                  # 인증 미들웨어
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 사용자 플로우
 
-## Learn More
+### 1. 로그인
 
-To learn more about Next.js, take a look at the following resources:
+```
+로그인 페이지 → Google OAuth → Supabase Auth 콜백 → 프로필 자동 생성 → 홈으로 이동
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. PDF 업로드 → 대화 시작
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+[홈] PDF 업로드 클릭
+  → 파일 선택 (최대 10MB)
+  → Supabase Storage에 직접 업로드 (Vercel 4.5MB 제한 우회)
+  → 서버에서 텍스트 추출 + 청크 분할
+  → Google Embedding API로 벡터 변환
+  → pgvector에 저장
+  → 채팅 페이지로 자동 이동
+```
 
-## Deploy on Vercel
+### 3. RAG 대화
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+[채팅] 질문 입력
+  → 질문을 벡터 임베딩으로 변환
+  → pgvector에서 유사도 높은 청크 Top-K 검색
+  → 검색된 문맥 + 대화 히스토리 → LLM 프롬프트 생성
+  → Gemini가 스트리밍 응답 생성
+  → 출처(페이지 번호, 관련도) 함께 표시
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 4. 문서 관리
+
+```
+[홈] 문서 카드 그리드
+  → 카드 클릭: 해당 PDF 채팅으로 이동
+  → 삭제: Storage 파일 + 벡터 데이터 + 채팅 기록 일괄 삭제
+```
+
+## DB 스키마
+
+| 테이블 | 설명 |
+|--------|------|
+| `profiles` | 사용자 프로필 (OAuth 연동, 크레딧 누적) |
+| `pdf_documents` | PDF 벡터 데이터 (content, embedding, page_number) |
+| `chat_sessions` | 채팅 세션 (PDF당 다중 세션) |
+| `chat_messages` | 메시지 (role, content, sources, usage) |
+| `credit_usage_logs` | 토큰 사용 로그 (모델별 비용 추적) |
+
+### RPC 함수
+
+- `match_documents()` — 벡터 코사인 유사도 검색
+- `get_user_collections()` — 사용자별 PDF 목록 집계
+- `get_user_credit_usage_summary()` — 크레딧 사용 요약
+- `cleanup_deleted_users()` — 소프트 딜리트 30일 경과 사용자 정리
+
+## 시작하기
+
+### 사전 요구사항
+
+- Node.js 18+
+- Supabase 프로젝트 (pgvector 확장 활성화)
+- AI Gateway API 키 (Google Gemini)
+
+### 환경 변수
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# AI Gateway
+AI_GATEWAY_API_KEY=
+
+# 모델 설정
+EMBEDDING_MODEL=google/text-embedding-004
+LLM_MODEL=google/gemini-2.5-flash
+
+# RAG 설정
+TOP_K=6
+CHAT_HISTORY_LIMIT=10
+
+# Cron 인증
+CRON_SECRET=
+```
+
+### 설치 및 실행
+
+```bash
+# 의존성 설치 (peer dep 충돌로 --legacy-peer-deps 필요)
+npm install --legacy-peer-deps
+
+# DB 스키마 적용
+# supabase/schema.sql을 Supabase SQL Editor에서 실행
+
+# 개발 서버 실행
+npm run dev
+```
+
+[http://localhost:3000](http://localhost:3000)에서 확인할 수 있습니다.
+
+### 빌드
+
+```bash
+npm run build
+npm start
+```
+
+## 배포
+
+Vercel에 배포하는 것을 권장합니다. 환경 변수를 Vercel 프로젝트 설정에 추가한 뒤 `main` 브랜치에 푸시하면 자동 배포됩니다.
+
+### Vercel Cron Jobs
+
+`vercel.json`에 크론잡이 설정되어 있습니다:
+
+- `/api/cron/cleanup-users` — 소프트 딜리트 사용자 30일 후 자동 삭제
+- `/api/cron/keep-alive` — 콜드 스타트 방지 웜업
