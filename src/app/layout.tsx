@@ -17,6 +17,18 @@ export const metadata: Metadata = {
   verification: {
     google: "e-kf0osr0ssGYaylRzPOcIu4hXUKj31hZ-9mSOs_3lk",
   },
+  openGraph: {
+    title: "Document Chat",
+    description: "PDF 문서와 AI 대화를 시작하세요",
+    siteName: "Document Chat",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Document Chat",
+    description: "PDF 문서와 AI 대화를 시작하세요",
+  },
 };
 
 export default function RootLayout({
