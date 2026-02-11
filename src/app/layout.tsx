@@ -12,6 +12,7 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://chatbot-zeta-five-34.vercel.app"),
   title: "Document Chat",
   description: "PDF 문서와 AI 대화를 시작하세요",
   verification: {
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     siteName: "Document Chat",
     locale: "ko_KR",
     type: "website",
+    url: "https://chatbot-zeta-five-34.vercel.app",
     images: [
       {
         url: "/og-image.png",
