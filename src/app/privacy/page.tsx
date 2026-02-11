@@ -233,7 +233,7 @@ export default function PrivacyPolicyPage() {
                   className="font-medium"
                   style={{ color: "var(--color-accent)" }}
                 >
-                  your-email@example.com
+                  sungjaechoi@gmail.com
                 </span>
               </li>
             </ul>
