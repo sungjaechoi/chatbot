@@ -3,8 +3,23 @@
 -- 실행 순서: 위에서 아래로 순차 실행
 -- ============================================================================
 
--- 1. pgvector 확장 활성화
-CREATE EXTENSION IF NOT EXISTS vector;
+-- 1. pgvector 확장 활성화 (권장: extensions 스키마)
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_extension e
+    JOIN pg_namespace n ON n.oid = e.extnamespace
+    WHERE e.extname = 'vector'
+      AND n.nspname = 'public'
+  ) THEN
+    ALTER EXTENSION vector SET SCHEMA extensions;
+  END IF;
+END;
+$$;
 
 -- ============================================================================
 -- 2. profiles 테이블 (auth.users 연계)
@@ -30,11 +45,11 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
-  USING (auth.uid() = id);
+  USING ((SELECT auth.uid()) = id);
 
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING ((SELECT auth.uid()) = id);
 
 -- 프로필 자동 생성 트리거
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -49,7 +64,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_catalog;
 
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -77,8 +92,8 @@ ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can CRUD own sessions"
   ON chat_sessions FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id)
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- ============================================================================
 -- 마이그레이션: 기존 테이블에 다중 세션 지원 추가
@@ -112,14 +127,14 @@ CREATE POLICY "Users can CRUD own messages"
     EXISTS (
       SELECT 1 FROM chat_sessions
       WHERE chat_sessions.id = chat_messages.session_id
-        AND chat_sessions.user_id = auth.uid()
+        AND chat_sessions.user_id = (SELECT auth.uid())
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM chat_sessions
       WHERE chat_sessions.id = chat_messages.session_id
-        AND chat_sessions.user_id = auth.uid()
+        AND chat_sessions.user_id = (SELECT auth.uid())
     )
   );
 
@@ -134,14 +149,14 @@ CREATE TABLE IF NOT EXISTS pdf_documents (
   page_number INTEGER NOT NULL,
   content TEXT NOT NULL,
   snippet TEXT,
-  embedding vector(3072),
+  embedding extensions.vector(3072),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- HNSW 인덱스 (코사인 유사도)
 CREATE INDEX IF NOT EXISTS pdf_documents_embedding_idx
   ON pdf_documents
-  USING hnsw (embedding vector_cosine_ops);
+  USING hnsw (embedding extensions.vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS pdf_documents_pdf_id_idx
   ON pdf_documents (pdf_id);
@@ -153,14 +168,14 @@ ALTER TABLE pdf_documents ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can CRUD own pdf documents"
   ON pdf_documents FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id)
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- ============================================================================
 -- 7. RPC 함수: match_documents (코사인 유사도 검색)
 -- ============================================================================
 CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding vector(3072),
+  query_embedding extensions.vector(3072),
   match_pdf_id TEXT,
   match_count INT DEFAULT 6
 )
@@ -174,6 +189,7 @@ RETURNS TABLE (
   similarity FLOAT
 )
 LANGUAGE plpgsql
+SET search_path = public, extensions, pg_catalog
 AS $$
 BEGIN
   RETURN QUERY
@@ -204,6 +220,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_catalog
 AS $$
 BEGIN
   RETURN QUERY
@@ -298,7 +315,7 @@ ALTER TABLE credit_usage_logs ENABLE ROW LEVEL SECURITY;
 --   - UPDATE/DELETE: 정책 없음 → 기본 거부. 로그는 immutable (수정/삭제 불가)
 CREATE POLICY "Users can view own credit usage logs"
   ON credit_usage_logs FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 -- ============================================================================
 -- 11. RPC 함수: get_user_credit_usage_summary (유저별 사용량 집계)
@@ -314,6 +331,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_catalog
 AS $$
 BEGIN
   RETURN QUERY
@@ -341,7 +359,7 @@ BEGIN
   WHERE id = NEW.user_id;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_catalog;
 
 CREATE OR REPLACE TRIGGER on_credit_usage_log_insert
   AFTER INSERT ON credit_usage_logs
@@ -424,6 +442,7 @@ CREATE OR REPLACE FUNCTION cleanup_deleted_users()
 RETURNS UUID[]
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_catalog
 AS $$
 DECLARE
   target_user_ids UUID[];
